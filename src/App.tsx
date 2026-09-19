@@ -1,88 +1,65 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useDiary } from './hooks/useDiary'
-import { DiaryForm } from './components/DiaryForm'
-import { DiaryList } from './components/DiaryList'
+import { Scene } from './components/Scene'
 import { CharacterStage } from './components/CharacterStage'
+import { DiaryDock } from './components/DiaryDock'
+import { HistoryPanel } from './components/HistoryPanel'
 import { MOOD_META } from './lib/mood'
+import { formatDate, todayISO } from './lib/storage'
 import type { Mood } from './types'
 import './App.css'
 
-type Tab = 'write' | 'history'
-
 export function App() {
-  const { entries, addEntry, removeEntry } = useDiary()
-  const [tab, setTab] = useState<Tab>('write')
+  const { entries, addEntry, removeEntry, entryOf } = useDiary()
+  const [historyOpen, setHistoryOpen] = useState(false)
   const [justSaved, setJustSaved] = useState<Mood | null>(null)
 
-  const counts = useMemo(() => {
-    const base: Record<Mood, number> = { happy: 0, sad: 0, angry: 0, neutral: 0 }
-    for (const entry of entries) base[entry.mood] += 1
-    return base
-  }, [entries])
+  const today = todayISO()
+  const todayEntry = entryOf(today)
 
-  const handleSubmit = (date: string, text: string) => {
-    const entry = addEntry(date, text)
+  const handleSubmit = (text: string) => {
+    const entry = addEntry(today, text)
     setJustSaved(entry.mood)
-    window.setTimeout(() => setJustSaved(null), 2600)
+    window.setTimeout(() => setJustSaved(null), 2800)
   }
 
   return (
     <div className="app">
-      <header className="app__header">
-        <h1 className="app__title">하루 기록 캐릭터 다이어리</h1>
-        <p className="app__subtitle">일기를 쓰면 그날의 감정이 캐릭터가 되어 돌아다녀요.</p>
-      </header>
-
+      <Scene />
       <CharacterStage entries={entries} />
 
+      <header className="hud hud--top">
+        <h1 className="hud__title display">하루 기록 캐릭터 다이어리</h1>
+        <p className="hud__subtitle">
+          {entries.length === 0
+            ? '일기를 쓰면 그날의 감정이 캐릭터가 되어 마을에 살아요'
+            : `${entries.length}명의 캐릭터가 마을을 걷고 있어요`}
+        </p>
+      </header>
+
       {justSaved && (
-        <p className="app__toast" role="status">
+        <p className="toast" role="status">
           {MOOD_META[justSaved].emoji} <strong>{MOOD_META[justSaved].label}</strong> 캐릭터가
           태어났어요!
         </p>
       )}
 
-      <nav className="app__tabs" role="tablist" aria-label="화면 전환">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === 'write'}
-          className="app__tab"
-          onClick={() => setTab('write')}
-        >
-          오늘 쓰기
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === 'history'}
-          className="app__tab"
-          onClick={() => setTab('history')}
-        >
-          지난 기록 ({entries.length})
-        </button>
-      </nav>
+      <button
+        className="hud hud--history display"
+        type="button"
+        onClick={() => setHistoryOpen(true)}
+      >
+        지난 기록 {entries.length > 0 && <span className="hud__badge">{entries.length}</span>}
+      </button>
 
-      <main className="app__main">
-        {tab === 'write' ? (
-          <DiaryForm onSubmit={handleSubmit} />
-        ) : (
-          <>
-            <ul className="app__stats">
-              {(Object.keys(MOOD_META) as Mood[]).map((mood) => (
-                <li key={mood} className="app__stat" data-mood={mood}>
-                  <span className="app__stat-emoji">{MOOD_META[mood].emoji}</span>
-                  <span className="app__stat-count">{counts[mood]}</span>
-                  <span className="app__stat-label">{MOOD_META[mood].label}</span>
-                </li>
-              ))}
-            </ul>
-            <DiaryList entries={entries} onRemove={removeEntry} />
-          </>
-        )}
-      </main>
+      <DiaryDock today={formatDate(today)} todayEntry={todayEntry} onSubmit={handleSubmit} />
 
-      <footer className="app__footer">기록은 이 브라우저(localStorage)에만 저장됩니다.</footer>
+      <HistoryPanel
+        open={historyOpen}
+        entries={entries}
+        onClose={() => setHistoryOpen(false)}
+        onRemove={removeEntry}
+      />
     </div>
   )
 }

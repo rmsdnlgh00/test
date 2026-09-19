@@ -4,8 +4,8 @@ import { createId, loadEntries, saveEntries } from '../lib/storage'
 import { detectMood } from '../lib/mood'
 
 /**
- * 기록 목록 상태 + localStorage 동기화를 담당한다.
- * 목록은 항상 최신순(날짜 내림차순)으로 정렬해서 내보낸다.
+ * 기록 목록 상태 + localStorage 동기화.
+ * 하루에 한 건만 두므로, 같은 날짜로 저장하면 기존 기록을 대체한다.
  */
 export function useDiary() {
   const [entries, setEntries] = useState<DiaryEntry[]>(() => loadEntries())
@@ -22,7 +22,7 @@ export function useDiary() {
       mood: detectMood(text),
       createdAt: Date.now(),
     }
-    setEntries((prev) => [entry, ...prev])
+    setEntries((prev) => [entry, ...prev.filter((item) => item.date !== date)])
     return entry
   }, [])
 
@@ -30,13 +30,16 @@ export function useDiary() {
     setEntries((prev) => prev.filter((entry) => entry.id !== id))
   }, [])
 
+  /** 날짜 내림차순 (최신이 앞) */
   const sorted = useMemo(
-    () =>
-      [...entries].sort((a, b) =>
-        a.date === b.date ? b.createdAt - a.createdAt : b.date.localeCompare(a.date),
-      ),
+    () => [...entries].sort((a, b) => b.date.localeCompare(a.date)),
     [entries],
   )
 
-  return { entries: sorted, addEntry, removeEntry }
+  const entryOf = useCallback(
+    (date: string) => sorted.find((entry) => entry.date === date) ?? null,
+    [sorted],
+  )
+
+  return { entries: sorted, addEntry, removeEntry, entryOf }
 }

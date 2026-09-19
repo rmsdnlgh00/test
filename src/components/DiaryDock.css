@@ -1,0 +1,232 @@
+.dock {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 30;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ── 접힌 상태 ── */
+.dock__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 22px;
+  font-size: 1rem;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-lift);
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  animation: dock-pop 0.28s cubic-bezier(0.2, 1.3, 0.5, 1);
+}
+
+.dock__trigger:hover {
+  transform: translateY(-2px);
+  background: #fff;
+}
+
+.dock__trigger-icon {
+  font-size: 1.05rem;
+  color: var(--leaf-deep);
+}
+
+/* ── 펼친 상태 ── */
+.dock__card {
+  width: min(86vw, 340px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lift);
+  transform-origin: bottom right;
+  animation: dock-unfold 0.26s cubic-bezier(0.2, 1.2, 0.4, 1);
+}
+
+.dock__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dock__date {
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+}
+
+.dock__close {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--ink-faint);
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.dock__close:hover {
+  background: var(--surface-soft);
+  color: var(--ink);
+}
+
+.dock__textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  font: inherit;
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: var(--ink);
+  background: #fffef9;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  resize: none;
+}
+
+.dock__textarea::placeholder {
+  color: var(--ink-faint);
+}
+
+.dock__textarea:focus {
+  outline: 2px solid var(--leaf);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+
+.dock__foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dock__preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.dock__count {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.dock__save {
+  padding: 10px 22px;
+  font-size: 0.95rem;
+  color: #38512a;
+  background: var(--leaf);
+  border: none;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  box-shadow: 0 6px 14px -8px rgba(106, 168, 74, 0.9);
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.dock__save:hover:not(:disabled) {
+  background: var(--leaf-deep);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.dock__save:disabled {
+  background: var(--surface-soft);
+  color: var(--ink-faint);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* ── 오늘 기록 완료 상태 ── */
+.dock__done-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lift);
+  animation: dock-pop 0.3s cubic-bezier(0.2, 1.3, 0.5, 1);
+}
+
+.dock__done-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.dock__done-title {
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+
+.dock__done-mood {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.dock__rewrite {
+  align-self: stretch;
+  padding: 0 12px;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  background: var(--surface-soft);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.dock__rewrite:hover {
+  background: #ece2cd;
+  color: var(--ink);
+}
+
+@keyframes dock-unfold {
+  from {
+    opacity: 0;
+    transform: scale(0.82) translateY(14px);
+  }
+}
+
+@keyframes dock-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dock__card,
+  .dock__trigger,
+  .dock__done-card {
+    animation: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .dock {
+    left: max(12px, env(safe-area-inset-left));
+  }
+
+  .dock__card {
+    width: 100%;
+  }
+
+  .dock__done-card {
+    width: 100%;
+    box-sizing: border-box;
+  }
+}

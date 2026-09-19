@@ -1,0 +1,99 @@
+/* 걷기 프레임: 다리·팔이 서로 반대 위상으로 움직이고 몸이 살짝 위아래로 튄다.
+   --step은 한 걸음 주기. CharacterStage가 캐릭터마다 다른 값을 넣어준다. */
+.char--walking .char__leg--l,
+.char--walking .char__foot--l {
+  animation: char-step-a var(--step, 0.62s) ease-in-out infinite;
+}
+
+.char--walking .char__leg--r,
+.char--walking .char__foot--r {
+  animation: char-step-b var(--step, 0.62s) ease-in-out infinite;
+}
+
+.char--walking .char__arm--l {
+  animation: char-swing-a var(--step, 0.62s) ease-in-out infinite;
+  transform-origin: 20px 54px;
+}
+
+.char--walking .char__arm--r {
+  animation: char-swing-b var(--step, 0.62s) ease-in-out infinite;
+  transform-origin: 80px 54px;
+}
+
+.char--walking .char__body-group {
+  animation: char-hop calc(var(--step, 0.62s) / 2) ease-in-out infinite;
+}
+
+.char--walking .char__shadow {
+  animation: char-shadow calc(var(--step, 0.62s) / 2) ease-in-out infinite;
+  transform-origin: 50px 93px;
+}
+
+/* 다리는 앞뒤로 흔들리듯 x축으로 오가며, 들릴 때 y로 올라간다. */
+@keyframes char-step-a {
+  0%,
+  100% {
+    transform: translate(3px, 0);
+  }
+  50% {
+    transform: translate(-3px, -3px);
+  }
+}
+
+@keyframes char-step-b {
+  0%,
+  100% {
+    transform: translate(-3px, -3px);
+  }
+  50% {
+    transform: translate(3px, 0);
+  }
+}
+
+@keyframes char-swing-a {
+  0%,
+  100% {
+    transform: rotate(14deg);
+  }
+  50% {
+    transform: rotate(-14deg);
+  }
+}
+
+@keyframes char-swing-b {
+  0%,
+  100% {
+    transform: rotate(-14deg);
+  }
+  50% {
+    transform: rotate(14deg);
+  }
+}
+
+@keyframes char-hop {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2.5px);
+  }
+}
+
+@keyframes char-shadow {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(0.88);
+    opacity: 0.75;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .char--walking * {
+    animation: none !important;
+  }
+}
