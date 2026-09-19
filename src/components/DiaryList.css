@@ -1,0 +1,105 @@
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.list__empty {
+  margin: 0;
+  padding: 24px 12px;
+  text-align: center;
+  color: #a2937c;
+  font-size: 0.9rem;
+}
+
+.card {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-left: 5px solid var(--card-accent, #cfd8d3);
+  box-shadow: 0 6px 18px -14px rgba(60, 45, 20, 0.6);
+}
+
+.card[data-mood='happy'] {
+  --card-accent: #ffd166;
+}
+.card[data-mood='sad'] {
+  --card-accent: #8ecae6;
+}
+.card[data-mood='angry'] {
+  --card-accent: #ff8a80;
+}
+.card[data-mood='neutral'] {
+  --card-accent: #cfd8d3;
+}
+
+.card__avatar {
+  flex: 0 0 auto;
+  line-height: 0;
+}
+
+.card__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+  padding-right: 22px;
+}
+
+.card__date {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #4b4030;
+}
+
+.card__mood {
+  font-size: 0.75rem;
+  color: #7a6a52;
+  background: #f6efe2;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.card__text {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: #5b5040;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.card__remove {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: #b3a892;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.card__remove:hover {
+  background: #f3ece0;
+  color: #7a6a52;
+}
