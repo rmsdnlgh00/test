@@ -2,8 +2,8 @@
  * 월별 계절 팔레트 (스펙 3장·4장).
  *
  * 배경을 벡터로 그리기 때문에 색 보정 필터를 씌우는 대신 색 자체를 바꾼다.
- * 그래서 9월은 '초록 우세 + 잎끝만 살짝 물듦', 10월은 '완연한 가을'처럼
- * 스펙이 말한 무드 차이를 실제 잎 색 비율로 표현할 수 있다.
+ * 그래서 9월은 '물들기 시작한 초가을', 10월은 '완연한 가을'처럼 스펙이 말한
+ * 무드 차이를 하늘·언덕·잔디·잎 색 전체로 표현할 수 있다.
  *
  * 색은 채도를 유지한 웜톤 파스텔 — 탁해지지 않도록 회색을 섞지 않는다.
  */
@@ -81,22 +81,6 @@ const SUMMER: ScenePalette = {
   bloom: ['#ffe0a8', '#ffd9e8', '#cfe9ff'],
 }
 
-/** 9월 — 아직 초록이 우세하고 잎끝만 살짝 물든다. */
-const EARLY_AUTUMN: ScenePalette = {
-  ...SUMMER,
-  skyTop: '#9dd8ef',
-  skyBottom: '#f0f5e4',
-  hillFar: '#cfe0a8',
-  hillNear: '#a8cc7e',
-  grassTop: '#9ccf6c',
-  grassBottom: '#7cb457',
-  grassLight: '#bfdf8c',
-  canopy: ['#69ab4a', '#85be5f', '#a4d07a'],
-  accent: '#f2a65a',
-  accentRatio: 0.22,
-  bloom: ['#ffd9b0', '#fff0bd', '#e8d2f0'],
-}
-
 /** 10월 — 완연한 가을. */
 const AUTUMN: ScenePalette = {
   skyTop: '#a6d3e8',
@@ -137,6 +121,29 @@ const LATE_AUTUMN: ScenePalette = {
   canopy: ['#b45f32', '#cc7f3f', '#dda05a'],
   accent: '#a8452f',
   accentRatio: 1,
+}
+
+/**
+ * 9월 — 물들기 시작한 초가을.
+ *
+ * 초록이 조금 남아 있되(잔디 한 톤, 잎 한 톤), 하늘·언덕·단풍은 이미 가을 쪽으로
+ * 넘어와 있다. 예전에는 여름 팔레트에 잎끝만 주황으로 찍어서, 정작 9월 화면이
+ * 여름과 구별되지 않았다 — 가을을 잎 색 하나가 아니라 빛과 땅 색으로 보여준다.
+ */
+const EARLY_AUTUMN: ScenePalette = {
+  ...AUTUMN,
+  skyTop: '#a7d4ec',
+  skyBottom: '#fdf1d8',
+  hillFar: '#d9d5a2',
+  hillNear: '#b6bb78',
+  grassTop: '#b4c873',
+  grassBottom: '#93aa5b',
+  grassLight: '#d0dc92',
+  // 마지막 한 톤만 아직 초록이다 — 나무마다 물드는 속도가 다른 것처럼 보인다.
+  canopy: ['#d08a3c', '#e2a851', '#a8bb5e'],
+  accent: '#e0693f',
+  accentRatio: 0.5,
+  bloom: ['#f5b06a', '#ffe6b4', '#dca9b4'],
 }
 
 const WINTER: ScenePalette = {

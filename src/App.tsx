@@ -43,7 +43,7 @@ export function App() {
    * 다시 그려지면 배터리만 먹고, 시트 안의 입력 상태에도 방해가 된다.
    */
   const agents = useWanderers(monthEntries, !decorating && screen === 'none')
-  const drag = useDecorDrag(frameRef, store)
+  const drag = useDecorDrag(frameRef, { ...store, placedDecor: store.inventory.placedDecor })
 
   /** 넘겨볼 수 있는 가장 이른 달 — 첫 기록이 있는 달. */
   const earliestMonth = store.entries.length > 0 ? monthOf(store.entries[0].date) : thisMonth
@@ -89,9 +89,10 @@ export function App() {
         month={viewMonth}
         agents={agents}
         placed={store.inventory.placedDecor}
-        showGrid={decorating}
+        decorating={decorating}
         debug={debug}
         draggingUid={drag.draggingUid}
+        selectedUid={drag.selectedUid}
         onDecorPointerDown={decorating ? drag.onDecorPointerDown : undefined}
       />
 

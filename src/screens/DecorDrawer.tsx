@@ -15,7 +15,7 @@ interface DecorDrawerProps {
 
 /**
  * 꾸미기 모드 하단 서랍 (스펙 8장).
- * 서랍의 소품을 탭하면 배치 구역 한가운데에 놓이고, 그다음 드래그로 자리를 잡는다.
+ * 서랍의 소품을 탭하면 마당의 빈자리에 놓이고, 그다음 드래그로 자리를 잡는다.
  */
 export function DecorDrawer({
   available,
@@ -35,7 +35,7 @@ export function DecorDrawer({
         <span className="drawer__hint">
           {selectedName
             ? `${selectedName} — 끌어서 옮기세요`
-            : '소품을 탭해서 놓고, 끌어서 자리를 잡으세요'}
+            : '소품을 탭하면 마당 가운데 놓여요. 끌어서 자리를 잡으세요'}
         </span>
         <div className="drawer__actions">
           {selectedName && (

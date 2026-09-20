@@ -24,11 +24,12 @@ interface StageProps {
   month: string
   agents: Agent[]
   placed: PlacedDecor[]
-  /** 꾸미기 모드에서만 격자를 보여준다 */
-  showGrid?: boolean
+  /** 꾸미기 모드에서만 격자를 보여주고, 무대를 서랍 위로 살짝 들어올린다 */
+  decorating?: boolean
   debug?: boolean
   draggingUid?: string | null
-  onDecorPointerDown?: (uid: string, event: ReactPointerEvent<HTMLDivElement>) => void
+  selectedUid?: string | null
+  onDecorPointerDown?: (decor: PlacedDecor, event: ReactPointerEvent<HTMLDivElement>) => void
 }
 
 /** 정렬 대상 — 소품과 캐릭터를 한 배열에 섞어 깊이순으로 세운다. */
@@ -42,9 +43,22 @@ type Sprite =
  * 배경 이미지는 화면을 cover로 덮는데, 좌표가 화면 기준이면 이미지가 잘릴 때
  * 잔디 위치와 어긋난다. 그래서 이미지 비율과 똑같은 프레임을 먼저 cover 크기로 깔고,
  * 모든 % 좌표를 그 프레임 기준으로 잡는다. 화면 비율이 바뀌어도 좌표가 잔디에 붙어 있다.
+ *
+ * 꾸미기 모드에서는 프레임을 조금 줄여 올린다. 하단 서랍이 잔디 앞쪽을 덮어 버리면
+ * 거기 놓인 소품을 집을 수 없기 때문이다. 좌표는 프레임의 실제 사각형(getBoundingClientRect)
+ * 에서 다시 계산되므로, 줄여도 드래그 좌표는 잔디에 그대로 붙어 있다.
  */
 export const Stage = forwardRef<HTMLDivElement, StageProps>(function Stage(
-  { month, agents, placed, showGrid = false, debug = false, draggingUid, onDecorPointerDown },
+  {
+    month,
+    agents,
+    placed,
+    decorating = false,
+    debug = false,
+    draggingUid,
+    selectedUid,
+    onDecorPointerDown,
+  },
   frameRef,
 ) {
   /** 깊이(화면상 아래쪽일수록 앞) 순으로 정렬 — 스펙 8장의 z-index 규칙. */
@@ -75,11 +89,11 @@ export const Stage = forwardRef<HTMLDivElement, StageProps>(function Stage(
   )
 
   return (
-    <div className="stage">
+    <div className={decorating ? 'stage is-decorating' : 'stage'}>
       <div className="stage__frame" ref={frameRef}>
         <SceneBackground month={month} />
 
-        {showGrid && <PerspectiveGrid />}
+        {decorating && <PerspectiveGrid />}
 
         {/* 문 앞에 캐릭터가 서면 문이 열린 표시가 켜진다 */}
         {openGates.map((spot) => {
@@ -100,6 +114,7 @@ export const Stage = forwardRef<HTMLDivElement, StageProps>(function Stage(
               key={sprite.key}
               decor={sprite.decor}
               dragging={draggingUid === sprite.key}
+              selected={selectedUid === sprite.key}
               onPointerDown={onDecorPointerDown}
             />
           ) : (
@@ -116,11 +131,13 @@ export const Stage = forwardRef<HTMLDivElement, StageProps>(function Stage(
 function DecorPiece({
   decor,
   dragging,
+  selected,
   onPointerDown,
 }: {
   decor: PlacedDecor
   dragging: boolean
-  onPointerDown?: (uid: string, event: ReactPointerEvent<HTMLDivElement>) => void
+  selected: boolean
+  onPointerDown?: (decor: PlacedDecor, event: ReactPointerEvent<HTMLDivElement>) => void
 }) {
   const item = decorById(decor.itemId)
   if (!item) return null
@@ -134,6 +151,7 @@ function DecorPiece({
       className={[
         'stage__piece',
         onPointerDown ? 'stage__piece--decor' : '',
+        selected ? 'is-selected' : '',
         dragging ? 'is-dragging' : '',
       ]
         .filter(Boolean)
@@ -146,7 +164,7 @@ function DecorPiece({
         // 밑동이 배치 좌표에 정확히 오도록 스프라이트 하단 여백만큼 끌어내린다.
         transform: `translate(-50%, -${100 - item.anchorY}%)`,
       }}
-      onPointerDown={onPointerDown ? (event) => onPointerDown(decor.uid, event) : undefined}
+      onPointerDown={onPointerDown ? (event) => onPointerDown(decor, event) : undefined}
       role={onPointerDown ? 'button' : undefined}
       tabIndex={onPointerDown ? 0 : undefined}
       aria-label={onPointerDown ? `${item.name} 옮기기` : undefined}

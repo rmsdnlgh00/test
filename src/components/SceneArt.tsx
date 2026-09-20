@@ -21,7 +21,15 @@ import type { ScenePalette } from '../data/season'
  *     그림과 판정 영역이 구조적으로 어긋날 수 없다.
  *  2. 계절 전환이 색 보정 필터가 아니라 실제 잎 색과 물든 비율로 표현된다.
  *  3. 어떤 화면 크기에서도 또렷하고, 용량이 수십 KB 수준이다.
+ *
+ * 깊이는 네 겹으로 만든다 — 먼 나무선 → 언덕 → 마당 뒤 나무 → 앞 나무.
+ * 뒤로 갈수록 하늘색 안개를 덮어 색을 덜어내면, 도형 수를 늘리지 않고도
+ * 공간이 깊어 보인다.
  */
+
+/** 잎 그늘·볕. 팔레트가 어떤 색이든 같은 방식으로 얹히도록 중립색을 쓴다. */
+const SHADE = '#4a3418'
+const SUNLIT = '#fff6d8'
 
 /** uv 를 SVG 작도 좌표로. 좌표계의 % 값을 그대로 환산한다. */
 function at(uv: Uv) {
@@ -34,6 +42,19 @@ const lawnPath = (points: Uv[]) =>
     .map(at)
     .map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
     .join(' ') + ' Z'
+
+/** 잔디 위의 가로 띠. 잔디 결을 원근에 맞춰 그릴 때 쓴다. */
+const lawnBand = (v0: number, v1: number) =>
+  lawnPath([
+    { u: 0, v: v0 },
+    { u: 1, v: v0 },
+    { u: 1, v: v1 },
+    { u: 0, v: v1 },
+  ])
+
+/** 잎 한 장. 끝이 뾰족한 렌즈 모양이라야 동그란 점으로 보이지 않는다. */
+const leafPath = (cx: number, cy: number, r: number) =>
+  `M${cx} ${cy - r} Q${cx + r * 0.85} ${cy} ${cx} ${cy + r} Q${cx - r * 0.85} ${cy} ${cx} ${cy - r} Z`
 
 /** 사각 영역을 타원으로 앉히기 위한 중심과 반지름. */
 function ovalOf(rect: UvRect) {
@@ -57,22 +78,17 @@ interface TreeSpec {
   y: number
   size: number
   tone: 0 | 1 | 2
-  warm: boolean
+  /** 0~1 주사위. 계절의 accentRatio 보다 작으면 물든 나무가 된다. */
+  roll: number
 }
 
 export function SceneArt({ palette }: { palette: ScenePalette }) {
   const backdrop = useMemo(buildBackdrop, [])
   const scatter = useMemo(buildScatter, [])
 
-  const lawn = lawnPath([
-    { u: 0, v: 0 },
-    { u: 1, v: 0 },
-    { u: 1, v: 1 },
-    { u: 0, v: 1 },
-  ])
-
   const frontLeft = at({ u: 0, v: 1 })
   const frontRight = at({ u: 1, v: 1 })
+  const backLeft = at({ u: 0, v: 0 })
   const midX = (frontLeft.x + frontRight.x) / 2
   const plinth = 64
 
@@ -90,7 +106,14 @@ export function SceneArt({ palette }: { palette: ScenePalette }) {
       <defs>
         <linearGradient id="art-sky" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={palette.skyTop} />
+          <stop offset="58%" stopColor={palette.skyBottom} />
           <stop offset="100%" stopColor={palette.skyBottom} />
+        </linearGradient>
+        {/* 지평선에 깔리는 안개. 뒤쪽 풍경의 색을 덜어 거리를 만든다 */}
+        <linearGradient id="art-haze" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={palette.skyBottom} stopOpacity="0" />
+          <stop offset="70%" stopColor={palette.skyBottom} stopOpacity="0.7" />
+          <stop offset="100%" stopColor={palette.skyBottom} stopOpacity="0.8" />
         </linearGradient>
         <linearGradient id="art-grass" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={palette.grassTop} />
@@ -101,19 +124,82 @@ export function SceneArt({ palette }: { palette: ScenePalette }) {
           <stop offset="100%" stopColor={palette.waterDeep} />
         </radialGradient>
         <radialGradient id="art-sun" cx="0.5" cy="0.5" r="0.5">
-          <stop offset="35%" stopColor="#fffdf0" />
-          <stop offset="72%" stopColor="#fff4c9" />
-          <stop offset="100%" stopColor="rgba(255,244,201,0)" />
+          <stop offset="30%" stopColor="#fffdf0" />
+          <stop offset="68%" stopColor="#fff2c0" />
+          <stop offset="100%" stopColor="rgba(255,242,192,0)" />
         </radialGradient>
-        {/* 잔디 위쪽에만 빛이 닿는 느낌 */}
-        <linearGradient id="art-lawn-light" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={palette.grassLight} stopOpacity="0.55" />
-          <stop offset="55%" stopColor={palette.grassLight} stopOpacity="0" />
+        {/* 해 둘레로 번지는 넓은 빛 */}
+        <radialGradient id="art-sun-halo" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0%" stopColor="#fff3c8" stopOpacity="0.5" />
+          <stop offset="100%" stopColor="#fff3c8" stopOpacity="0" />
+        </radialGradient>
+        {/* 잔디 뒤쪽에 지는 그늘. 울타리 밑이 붕 뜨지 않게 잡아 준다 */}
+        <linearGradient id="art-lawn-shade" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={SHADE} stopOpacity="0.2" />
+          <stop offset="100%" stopColor={SHADE} stopOpacity="0" />
+        </linearGradient>
+        {/* 잔디 앞쪽에 닿는 볕 */}
+        <linearGradient id="art-lawn-light" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0%" stopColor={palette.grassLight} stopOpacity="0.45" />
+          <stop offset="100%" stopColor={palette.grassLight} stopOpacity="0" />
         </linearGradient>
       </defs>
 
       <rect width={SVG_WIDTH} height={SVG_HEIGHT} fill="url(#art-sky)" />
-      <circle cx={1310} cy={132} r={82} fill="url(#art-sun)" />
+      <circle cx={1310} cy={132} r={250} fill="url(#art-sun-halo)" />
+      <circle cx={1310} cy={132} r={78} fill="url(#art-sun)" />
+
+      {/* 구름 */}
+      {backdrop.clouds.map((cloud, i) => (
+        <Cloud key={`cloud-${i}`} cloud={cloud} palette={palette} />
+      ))}
+
+      {/* 하늘을 건너는 새 몇 마리 */}
+      {backdrop.birds.map((bird, i) => (
+        <path
+          key={`bird-${i}`}
+          d={
+            `M${bird.x - bird.s * 2} ${bird.y} q${bird.s} ${-bird.s * 0.8} ${bird.s * 2} 0 ` +
+            `q${bird.s} ${-bird.s * 0.8} ${bird.s * 2} 0`
+          }
+          fill="none"
+          stroke={palette.trunkDark}
+          strokeWidth={bird.s * 0.28}
+          strokeLinecap="round"
+          opacity="0.32"
+        />
+      ))}
+
+      {/* 가장 먼 나무선. 실루엣만 보이고 곧 안개에 잠긴다 */}
+      {backdrop.farTrees.map((tree, i) => (
+        <g key={`far-${i}`} opacity="0.6">
+          <rect
+            x={tree.x - tree.size * 0.05}
+            y={tree.y - tree.size * 0.45}
+            width={tree.size * 0.1}
+            height={tree.size * 0.45}
+            fill={palette.trunk}
+          />
+          <circle
+            cx={tree.x}
+            cy={tree.y - tree.size * 0.52}
+            r={tree.size * 0.42}
+            fill={palette.canopy[tree.tone]}
+          />
+          <circle
+            cx={tree.x - tree.size * 0.3}
+            cy={tree.y - tree.size * 0.34}
+            r={tree.size * 0.3}
+            fill={palette.canopy[tree.tone]}
+          />
+          <circle
+            cx={tree.x + tree.size * 0.3}
+            cy={tree.y - tree.size * 0.36}
+            r={tree.size * 0.28}
+            fill={palette.canopy[tree.tone]}
+          />
+        </g>
+      ))}
 
       {/* 먼 언덕 */}
       <path
@@ -125,28 +211,12 @@ export function SceneArt({ palette }: { palette: ScenePalette }) {
         fill={palette.hillNear}
       />
 
-      {/* 구름 */}
-      {backdrop.clouds.map((cloud, i) => (
-        <g key={`cloud-${i}`} fill={palette.cloud} opacity={cloud.opacity}>
-          <ellipse cx={cloud.x} cy={cloud.y} rx={cloud.r * 1.7} ry={cloud.r * 0.72} />
-          <ellipse
-            cx={cloud.x - cloud.r * 0.8}
-            cy={cloud.y + cloud.r * 0.2}
-            rx={cloud.r}
-            ry={cloud.r * 0.62}
-          />
-          <ellipse
-            cx={cloud.x + cloud.r * 0.75}
-            cy={cloud.y + cloud.r * 0.16}
-            rx={cloud.r * 0.82}
-            ry={cloud.r * 0.56}
-          />
-        </g>
-      ))}
+      {/* 언덕 위로 안개를 덮어 앞뒤 거리를 벌린다 */}
+      <rect x="0" y="150" width={SVG_WIDTH} height="330" fill="url(#art-haze)" />
 
       {/* 평면 뒤에 늘어선 나무 */}
       {backdrop.trees.map((tree, i) => (
-        <Tree key={`tree-${i}`} spec={tree} palette={palette} />
+        <Tree key={`tree-${i}`} id={`t${i}`} spec={tree} palette={palette} />
       ))}
 
       {/* 디오라마 받침 — 잔디 평면의 두께 */}
@@ -169,38 +239,88 @@ export function SceneArt({ palette }: { palette: ScenePalette }) {
       />
 
       {/* 잔디 평면 */}
-      <path d={lawn} fill="url(#art-grass)" />
-      <path d={lawn} fill="url(#art-lawn-light)" />
+      <path d={lawnBand(0, 1)} fill="url(#art-grass)" />
+
+      {/* 잔디 결. 원근을 따르는 가로 띠라 평면이 눕혀 보인다 */}
+      {scatter.mowBands.map((band, i) => (
+        <path
+          key={`mow-${i}`}
+          d={lawnBand(band.v0, band.v1)}
+          fill={palette.grassLight}
+          opacity="0.09"
+        />
+      ))}
+
+      <path d={lawnBand(0, 0.26)} fill="url(#art-lawn-shade)" />
+      <path d={lawnBand(0.62, 1)} fill="url(#art-lawn-light)" />
+
+      {/* 잔디 앞 모서리에 걸리는 빛 */}
+      <line
+        x1={frontLeft.x}
+        y1={frontLeft.y - 2}
+        x2={frontRight.x}
+        y2={frontRight.y - 2}
+        stroke={palette.grassLight}
+        strokeWidth="4"
+        opacity="0.5"
+      />
 
       {/* 연못 — POND 좌표에 그대로 앉는다 */}
       <ellipse
         cx={pond.cx}
         cy={pond.cy}
-        rx={pond.rx * 1.04}
-        ry={pond.ry * 1.06}
+        rx={pond.rx * 1.06}
+        ry={pond.ry * 1.08}
         fill={palette.soilDark}
-        opacity="0.3"
+        opacity="0.32"
       />
       <ellipse cx={pond.cx} cy={pond.cy} rx={pond.rx} ry={pond.ry} fill="url(#art-water)" />
+      {/* 물결 한두 줄이면 수면이 물처럼 읽힌다 */}
+      <path
+        d={
+          `M${pond.cx - pond.rx * 0.5} ${pond.cy + pond.ry * 0.14} ` +
+          `q${pond.rx * 0.25} ${-7} ${pond.rx * 0.5} 0 ` +
+          `q${pond.rx * 0.25} ${7} ${pond.rx * 0.5} 0`
+        }
+        fill="none"
+        stroke="#ffffff"
+        strokeWidth="3"
+        strokeLinecap="round"
+        opacity="0.38"
+      />
       <ellipse
         cx={pond.cx - pond.rx * 0.3}
-        cy={pond.cy - pond.ry * 0.32}
+        cy={pond.cy - pond.ry * 0.34}
         rx={pond.rx * 0.34}
-        ry={pond.ry * 0.2}
+        ry={pond.ry * 0.18}
         fill="#ffffff"
-        opacity="0.35"
+        opacity="0.4"
       />
-      <ellipse
-        cx={pond.cx + pond.rx * 0.34}
-        cy={pond.cy + pond.ry * 0.28}
-        rx={pond.rx * 0.18}
-        ry={pond.ry * 0.11}
-        fill="#ffffff"
-        opacity="0.22"
-      />
+
+      {/* 물가에 놓인 돌 */}
+      {scatter.pondStones.map((stone, i) => (
+        <ellipse
+          key={`pondstone-${i}`}
+          cx={pond.cx + Math.cos(stone.angle) * pond.rx * 1.06}
+          cy={pond.cy + Math.sin(stone.angle) * pond.ry * 1.08}
+          rx={stone.r}
+          ry={stone.r * 0.62}
+          fill={palette.pathEdge}
+        />
+      ))}
 
       {/* 화단 — FLOWER_BED 좌표에 그대로 앉는다 */}
       <ellipse cx={bed.cx} cy={bed.cy} rx={bed.rx} ry={bed.ry} fill={palette.soil} opacity="0.45" />
+      <ellipse
+        cx={bed.cx}
+        cy={bed.cy}
+        rx={bed.rx}
+        ry={bed.ry}
+        fill="none"
+        stroke={palette.soilDark}
+        strokeWidth="3"
+        opacity="0.25"
+      />
       {scatter.blooms.map((bloom, i) => {
         const p = at({
           u: FLOWER_BED.u0 + (FLOWER_BED.u1 - FLOWER_BED.u0) * bloom.u,
@@ -208,8 +328,27 @@ export function SceneArt({ palette }: { palette: ScenePalette }) {
         })
         return (
           <g key={`bloom-${i}`}>
-            <ellipse cx={p.x} cy={p.y} rx={bloom.size * 1.4} ry={bloom.size * 0.8} fill={palette.canopy[1]} />
-            <circle cx={p.x} cy={p.y - bloom.size * 0.6} r={bloom.size * 0.72} fill={palette.bloom[bloom.tone]} />
+            <ellipse
+              cx={p.x}
+              cy={p.y}
+              rx={bloom.size * 1.4}
+              ry={bloom.size * 0.8}
+              fill={palette.canopy[2]}
+              opacity="0.7"
+            />
+            <circle
+              cx={p.x}
+              cy={p.y - bloom.size * 0.6}
+              r={bloom.size * 0.72}
+              fill={palette.bloom[bloom.tone]}
+            />
+            <circle
+              cx={p.x}
+              cy={p.y - bloom.size * 0.6}
+              r={bloom.size * 0.26}
+              fill={SUNLIT}
+              opacity="0.7"
+            />
           </g>
         )
       })}
@@ -219,20 +358,29 @@ export function SceneArt({ palette }: { palette: ScenePalette }) {
         const p = at({ u: 0.5 + stone.offset, v: stone.v })
         const scale = 0.5 + stone.v * 0.8
         return (
-          <ellipse
-            key={`stone-${i}`}
-            cx={p.x}
-            cy={p.y}
-            rx={32 * scale}
-            ry={13 * scale}
-            fill={palette.path}
-            stroke={palette.pathEdge}
-            strokeWidth={2.4}
-          />
+          <g key={`stone-${i}`}>
+            <ellipse
+              cx={p.x}
+              cy={p.y + 4 * scale}
+              rx={33 * scale}
+              ry={13 * scale}
+              fill={SHADE}
+              opacity="0.12"
+            />
+            <ellipse
+              cx={p.x}
+              cy={p.y}
+              rx={32 * scale}
+              ry={13 * scale}
+              fill={palette.path}
+              stroke={palette.pathEdge}
+              strokeWidth={2.4}
+            />
+          </g>
         )
       })}
 
-      <Fence palette={palette} />
+      <Fence palette={palette} groundY={backLeft.y} />
       <Bench palette={palette} />
 
       {/* 잔디 위 풀포기 — 뒤쪽일수록 작게 */}
@@ -247,11 +395,11 @@ export function SceneArt({ palette }: { palette: ScenePalette }) {
               `M${p.x} ${p.y} q${1 * s} ${-10 * s} ${2 * s} ${-15 * s} ` +
               `M${p.x} ${p.y} q${6 * s} ${-8 * s} ${10 * s} ${-12 * s}`
             }
-            stroke={palette.grassLight}
+            stroke={tuft.dark ? palette.grassBottom : palette.grassLight}
             strokeWidth={2.6 * s}
             strokeLinecap="round"
             fill="none"
-            opacity="0.8"
+            opacity="0.75"
           />
         )
       })}
@@ -262,68 +410,150 @@ export function SceneArt({ palette }: { palette: ScenePalette }) {
           const p = at({ u: leaf.u, v: leaf.v })
           const s = 0.5 + leaf.v * 0.8
           return (
-            <ellipse
+            <path
               key={`leaf-${i}`}
-              cx={p.x}
-              cy={p.y}
-              rx={7 * s}
-              ry={4 * s}
-              fill={leaf.warm ? palette.accent : palette.canopy[2]}
-              opacity="0.75"
-              transform={`rotate(${leaf.rotation} ${p.x} ${p.y})`}
+              d={leafPath(p.x, p.y, 9 * s)}
+              fill={leaf.warm ? palette.accent : palette.canopy[leaf.tone]}
+              opacity="0.8"
+              // 바닥에 누운 잎이라 세로로 눌러 놓고, 저마다 다른 방향으로 돌린다.
+              transform={`rotate(${leaf.rotation} ${p.x} ${p.y}) translate(${p.x} ${p.y}) scale(1 0.55) translate(${-p.x} ${-p.y})`}
             />
           )
         })}
 
       {/* 화면 좌우 앞쪽의 큰 나무 — 가까이서 들여다보는 느낌을 만든다 */}
       {backdrop.frontTrees.map((tree, i) => (
-        <Tree key={`front-${i}`} spec={tree} palette={palette} />
+        <Tree key={`front-${i}`} id={`f${i}`} spec={tree} palette={palette} />
       ))}
     </svg>
   )
 }
 
-function Tree({ spec, palette }: { spec: TreeSpec; palette: ScenePalette }) {
-  const { x, y, size, tone, warm } = spec
-  // 물든 잎을 계절 팔레트의 비율만큼만 섞는다 — 9월은 잎끝만, 10월은 대부분.
-  const accentColor = warm ? palette.accent : palette.canopy[2]
-  const trunkWidth = size * 0.15
+/** 수관을 이루는 잎덩이. 나무 크기에 대한 비율로 적어 둔다. */
+const CANOPY_BLOBS = [
+  { dx: -0.3, dy: -0.6, r: 0.3 },
+  { dx: 0.31, dy: -0.64, r: 0.28 },
+  { dx: 0, dy: -0.82, r: 0.4 },
+  { dx: -0.13, dy: -1.02, r: 0.24 },
+  { dx: 0.15, dy: -1.03, r: 0.22 },
+] as const
+
+/**
+ * 나무 한 그루.
+ *
+ * 잎덩이를 클립 경로로 만들어 두고 그 안에서만 그늘과 볕을 칠한다.
+ * 덩어리마다 다른 색을 칠하던 예전 방식은 원이 겹친 자리마다 경계가 생겨
+ * 뭉게구름처럼 보였는데, 이렇게 하면 수관 하나에 빛이 한 방향으로 든다.
+ */
+function Tree({ id, spec, palette }: { id: string; spec: TreeSpec; palette: ScenePalette }) {
+  const { x, y, size, tone, roll } = spec
+  // 물든 나무의 비율은 계절이 정한다 — 9월은 절반, 11월은 전부.
+  const warm = roll < palette.accentRatio
+  const base = warm ? palette.accent : palette.canopy[tone]
+  // 물드는 중인 잎 얼룩. 초록 나무엔 단풍색을, 단풍 나무엔 남은 초록을 찍는다.
+  const speck = warm ? palette.canopy[2] : palette.accent
+  const clipId = `canopy-${id}`
+  const trunkWidth = size * 0.13
 
   return (
     <g>
-      <ellipse cx={x} cy={y} rx={size * 0.4} ry={size * 0.09} fill={palette.soilDark} opacity="0.18" />
+      <defs>
+        <clipPath id={clipId}>
+          {CANOPY_BLOBS.map((blob, i) => (
+            <circle key={i} cx={x + size * blob.dx} cy={y + size * blob.dy} r={size * blob.r} />
+          ))}
+        </clipPath>
+      </defs>
+
+      <ellipse cx={x} cy={y} rx={size * 0.42} ry={size * 0.1} fill={SHADE} opacity="0.16" />
+
+      {/* 밑동이 살짝 굵은 줄기와 가지 하나 */}
+      <path
+        d={`M${x} ${y - size * 0.44} L${x - size * 0.19} ${y - size * 0.64}`}
+        stroke={palette.trunk}
+        strokeWidth={size * 0.05}
+        strokeLinecap="round"
+      />
       <path
         d={
-          `M${x - trunkWidth} ${y} L${x - trunkWidth * 0.62} ${y - size * 0.55} ` +
-          `L${x + trunkWidth * 0.62} ${y - size * 0.55} L${x + trunkWidth} ${y} Z`
+          `M${x - trunkWidth} ${y} Q${x - trunkWidth * 0.5} ${y - size * 0.3} ${x - trunkWidth * 0.45} ${y - size * 0.64} ` +
+          `L${x + trunkWidth * 0.45} ${y - size * 0.64} Q${x + trunkWidth * 0.5} ${y - size * 0.3} ${x + trunkWidth} ${y} Z`
         }
         fill={palette.trunk}
       />
       <path
-        d={`M${x - trunkWidth * 0.3} ${y} L${x - trunkWidth * 0.2} ${y - size * 0.55} L${x + trunkWidth * 0.1} ${y - size * 0.55} L${x + trunkWidth * 0.2} ${y} Z`}
-        fill={palette.trunkDark}
-        opacity="0.35"
+        d={`M${x - trunkWidth * 0.6} ${y} Q${x - trunkWidth * 0.25} ${y - size * 0.3} ${x - trunkWidth * 0.22} ${y - size * 0.62}`}
+        stroke={palette.trunkDark}
+        strokeWidth={trunkWidth * 0.55}
+        fill="none"
+        opacity="0.3"
       />
-      <circle cx={x} cy={y - size * 0.8} r={size * 0.38} fill={palette.canopy[tone]} />
-      <circle
-        cx={x - size * 0.26}
-        cy={y - size * 0.64}
-        r={size * 0.27}
-        fill={palette.canopy[(tone + 1) % 3]}
-      />
-      <circle cx={x + size * 0.27} cy={y - size * 0.66} r={size * 0.25} fill={accentColor} />
-      <circle
-        cx={x + size * 0.05}
-        cy={y - size * 1.04}
-        r={size * 0.23}
-        fill={palette.canopy[(tone + 2) % 3]}
-      />
+
+      <g clipPath={`url(#${clipId})`}>
+        <rect
+          x={x - size * 0.85}
+          y={y - size * 1.5}
+          width={size * 1.7}
+          height={size * 1.6}
+          fill={base}
+        />
+        {/* 아래쪽 그늘 */}
+        <ellipse
+          cx={x - size * 0.1}
+          cy={y - size * 0.4}
+          rx={size}
+          ry={size * 0.46}
+          fill={SHADE}
+          opacity="0.2"
+        />
+        {/* 위쪽 볕 */}
+        <ellipse
+          cx={x + size * 0.16}
+          cy={y - size * 1.05}
+          rx={size * 0.5}
+          ry={size * 0.32}
+          fill={SUNLIT}
+          opacity="0.3"
+        />
+        {/* 물드는 잎 얼룩 */}
+        <circle cx={x - size * 0.34} cy={y - size * 0.72} r={size * 0.15} fill={speck} opacity="0.5" />
+        <circle cx={x + size * 0.28} cy={y - size * 0.95} r={size * 0.12} fill={speck} opacity="0.42" />
+        <circle cx={x + size * 0.08} cy={y - size * 0.56} r={size * 0.1} fill={speck} opacity="0.38" />
+      </g>
+    </g>
+  )
+}
+
+interface CloudSpec {
+  x: number
+  y: number
+  r: number
+  opacity: number
+}
+
+function Cloud({ cloud, palette }: { cloud: CloudSpec; palette: ScenePalette }) {
+  const { x, y, r } = cloud
+  const puffs = (
+    <>
+      <ellipse cx={x} cy={y} rx={r * 1.7} ry={r * 0.72} />
+      <ellipse cx={x - r * 0.8} cy={y + r * 0.2} rx={r} ry={r * 0.62} />
+      <ellipse cx={x + r * 0.75} cy={y + r * 0.16} rx={r * 0.82} ry={r * 0.56} />
+    </>
+  )
+
+  return (
+    <g opacity={cloud.opacity}>
+      {/* 아랫배에 하늘색이 비쳐야 구름이 납작한 종잇장으로 보이지 않는다 */}
+      <g fill={palette.skyBottom} opacity="0.6" transform={`translate(0 ${r * 0.2})`}>
+        {puffs}
+      </g>
+      <g fill={palette.cloud}>{puffs}</g>
     </g>
   )
 }
 
 /** 잔디 뒤쪽 가장자리를 따라 세우는 울타리. 가운데는 문을 위해 비워 둔다. */
-function Fence({ palette }: { palette: ScenePalette }) {
+function Fence({ palette, groundY }: { palette: ScenePalette; groundY: number }) {
   const FENCE_V = 0.02
   const GAP_FROM = 0.43
   const GAP_TO = 0.57
@@ -353,16 +583,35 @@ function Fence({ palette }: { palette: ScenePalette }) {
 
   return (
     <g>
+      {/* 울타리가 잔디에 드리우는 그림자 */}
+      <rect
+        x={left.x}
+        y={groundY}
+        width={right.x - left.x}
+        height={9}
+        fill={SHADE}
+        opacity="0.12"
+      />
       {posts.map((post, i) => (
-        <rect
-          key={`post-${i}`}
-          x={post.x - 5}
-          y={post.y - 46}
-          width={10}
-          height={46}
-          rx={3}
-          fill={palette.fenceDark}
-        />
+        <g key={`post-${i}`}>
+          <rect
+            x={post.x - 5}
+            y={post.y - 46}
+            width={10}
+            height={46}
+            rx={3}
+            fill={palette.fenceDark}
+          />
+          <rect
+            x={post.x - 5}
+            y={post.y - 46}
+            width={4}
+            height={46}
+            rx={2}
+            fill={SUNLIT}
+            opacity="0.2"
+          />
+        </g>
       ))}
       {rail(left, gapLeft, 32)}
       {rail(left, gapLeft, 15)}
@@ -401,11 +650,13 @@ function Bench({ palette }: { palette: ScenePalette }) {
 
   return (
     <g>
-      <ellipse cx={p.x} cy={p.y} rx={w * 0.5} ry={10} fill={palette.soilDark} opacity="0.2" />
+      <ellipse cx={p.x} cy={p.y} rx={w * 0.5} ry={10} fill={SHADE} opacity="0.2" />
       <rect x={p.x - w / 2 + 11} y={p.y - 72} width={9} height={42} fill={palette.fenceDark} />
       <rect x={p.x + w / 2 - 20} y={p.y - 72} width={9} height={42} fill={palette.fenceDark} />
       <rect x={p.x - w / 2} y={p.y - 64} width={w} height={11} rx={4} fill={palette.fence} />
+      <rect x={p.x - w / 2} y={p.y - 64} width={w} height={4} rx={2} fill={SUNLIT} opacity="0.3" />
       <rect x={p.x - w / 2} y={p.y - 38} width={w} height={13} rx={4} fill={palette.fence} />
+      <rect x={p.x - w / 2} y={p.y - 38} width={w} height={4} rx={2} fill={SUNLIT} opacity="0.3" />
       <rect x={p.x - w / 2 + 11} y={p.y - 27} width={10} height={27} fill={palette.fenceDark} />
       <rect x={p.x + w / 2 - 21} y={p.y - 27} width={10} height={27} fill={palette.fenceDark} />
     </g>
@@ -416,27 +667,40 @@ function Bench({ palette }: { palette: ScenePalette }) {
 function buildBackdrop() {
   const random = makeRandom(20260920)
 
+  const farTrees = Array.from({ length: 22 }, (_, i) => ({
+    x: -20 + (i / 21) * 1640 + (random() - 0.5) * 60,
+    y: 326 + random() * 24,
+    size: 74 + random() * 52,
+    tone: Math.floor(random() * 3) as 0 | 1 | 2,
+  }))
+
   const trees: TreeSpec[] = Array.from({ length: 17 }, (_, i) => ({
     x: 30 + (i / 16) * 1540 + (random() - 0.5) * 72,
     y: 352 + random() * 48,
     size: 150 + random() * 120,
     tone: Math.floor(random() * 3) as 0 | 1 | 2,
-    warm: random() < 0.55,
+    roll: random(),
   }))
 
   const frontTrees: TreeSpec[] = [
-    { x: -30, y: 900, size: 420, tone: 0, warm: false },
-    { x: 1640, y: 930, size: 450, tone: 1, warm: true },
+    { x: -30, y: 900, size: 420, tone: 0, roll: 0.92 },
+    { x: 1640, y: 930, size: 450, tone: 1, roll: 0.08 },
   ]
 
-  const clouds = [
+  const clouds: CloudSpec[] = [
     { x: 250, y: 118, r: 44, opacity: 0.95 },
     { x: 690, y: 76, r: 34, opacity: 0.8 },
     { x: 1030, y: 152, r: 27, opacity: 0.68 },
     { x: 1470, y: 88, r: 38, opacity: 0.85 },
   ]
 
-  return { trees, frontTrees, clouds }
+  const birds = [
+    { x: 548, y: 198, s: 9 },
+    { x: 610, y: 176, s: 7 },
+    { x: 664, y: 208, s: 6 },
+  ]
+
+  return { trees, farTrees, frontTrees, clouds, birds }
 }
 
 /** 잔디 위 요소는 uv 로 배치해 원근을 그대로 따르게 한다. */
@@ -455,14 +719,27 @@ function buildScatter() {
     offset: (random() - 0.5) * 0.045,
   }))
 
-  const tufts = Array.from({ length: 48 }, () => ({ u: random(), v: random() }))
+  const pondStones = Array.from({ length: 6 }, () => ({
+    angle: random() * Math.PI * 2,
+    r: 9 + random() * 7,
+  }))
 
-  const leaves = Array.from({ length: 36 }, () => ({
+  const tufts = Array.from({ length: 56 }, () => ({
+    u: random(),
+    v: random(),
+    dark: random() < 0.35,
+  }))
+
+  const leaves = Array.from({ length: 44 }, () => ({
     u: random(),
     v: random(),
     rotation: random() * 180,
-    warm: random() < 0.6,
+    warm: random() < 0.62,
+    tone: Math.floor(random() * 3) as 0 | 1 | 2,
   }))
 
-  return { blooms, stones, tufts, leaves }
+  /** 잔디 결 — 한 칸 걸러 한 칸씩만 밝게 칠한다. */
+  const mowBands = Array.from({ length: 5 }, (_, i) => ({ v0: i * 0.2, v1: i * 0.2 + 0.1 }))
+
+  return { blooms, stones, pondStones, tufts, leaves, mowBands }
 }
