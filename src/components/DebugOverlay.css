@@ -1,0 +1,62 @@
+.debug {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 50;
+}
+
+.debug__ground {
+  fill: rgba(60, 200, 90, 0.1);
+  stroke: #1f9d40;
+  stroke-width: 0.35;
+}
+
+.debug__line {
+  fill: none;
+  stroke: rgba(31, 157, 64, 0.45);
+  stroke-width: 0.12;
+}
+
+.debug__walk {
+  fill: rgba(60, 130, 240, 0.16);
+  stroke: #2f6fe0;
+  stroke-width: 0.25;
+}
+
+.debug__block {
+  fill: rgba(230, 60, 60, 0.22);
+  stroke: #d33;
+  stroke-width: 0.2;
+}
+
+.debug__spot {
+  position: absolute;
+  z-index: 51;
+  transform: translate(-50%, -50%);
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  background: rgba(20, 20, 20, 0.78);
+  color: #fff;
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.debug__readout {
+  position: absolute;
+  z-index: 52;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: rgba(20, 20, 20, 0.8);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1.5;
+  pointer-events: none;
+}

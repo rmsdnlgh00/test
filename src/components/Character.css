@@ -97,3 +97,21 @@
     animation: none !important;
   }
 }
+
+/* 벤치에 앉은 포즈 — 몸을 내리고 다리를 앞으로 접는다. */
+.char--sitting .char__body-group {
+  transform: translateY(6px);
+}
+
+.char--sitting .char__legs {
+  transform: translate(6px, -6px) rotate(-62deg);
+  transform-origin: 50px 80px;
+}
+
+.char--sitting .char__feet {
+  transform: translate(12px, -12px);
+}
+
+.char--sitting .char__shadow {
+  opacity: 0.5;
+}

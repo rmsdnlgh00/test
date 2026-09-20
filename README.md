@@ -1,7 +1,9 @@
 # 하루 기록 캐릭터 다이어리
 
-일기를 쓰면 본문의 감정을 판별해 그날의 캐릭터가 태어나고, 화면 안을 천천히 걸어 다닙니다.
-React + Vite + TypeScript 단일 페이지 앱이며, 서버 없이 localStorage만 사용합니다.
+일기를 쓰면 본문의 감정을 판별해 그날의 캐릭터가 태어나고, 계절이 바뀌는 디오라마 배경 위를
+걸어 다닙니다. React + Vite + TypeScript 단일 페이지 앱이며, 서버 없이 localStorage만 씁니다.
+
+구현 기준은 `diary-app-spec.md` 입니다.
 
 ## 실행
 
@@ -12,63 +14,76 @@ npm run build    # 타입체크 + 프로덕션 빌드 (dist/)
 npm run preview  # 빌드 결과 미리보기
 ```
 
+좌표를 맞출 때는 `http://localhost:5173/?debug=1` 로 열면 지면 사각형·격자·걷는 영역·
+핫스팟이 화면에 그려집니다.
+
+## 설계의 중심 — 하나의 지면 좌표계
+
+배경은 아이소메트릭 디오라마라서, 캐릭터 이동·소품 배치·안내 격자가 모두 같은 원근을
+따라야 합니다. 그래서 `src/data/scene.ts` 의 `GROUND_QUAD` 네 점 **하나만** 정의하고
+나머지를 전부 거기서 파생시킵니다.
+
+- `uvToPoint` 가 지면 정규화 좌표 `(u, v)` 를 화면 % 좌표로 겹선형 보간합니다.
+- `pointToUv` 는 그 역변환이라, 드래그로 찍은 화면 좌표가 지면의 어디인지 알아냅니다.
+- 격자를 그릴지 말지와 소품을 놓을 수 있는지를 **같은 `isPlaceable`** 로 판정하므로,
+  눈에 보이는 격자와 실제 판정 영역이 어긋날 수 없습니다.
+
+배경 이미지가 화면을 `cover` 로 덮으면 화면 비율에 따라 잘리는데, 좌표가 화면 기준이면
+잔디 위치와 어긋납니다. 그래서 이미지와 같은 비율의 프레임(`.stage__frame`)을 먼저
+cover 크기로 깔고 모든 % 좌표를 그 프레임 기준으로 잡습니다.
+
+## 배경 이미지 갈아끼우기
+
+1. 이미지를 `public/` 에 넣습니다.
+2. 월별 배경이면 `src/data/scene.ts` 의 `MONTH_BACKGROUNDS` 에 `'YYYY-MM': '/파일명'` 으로 등록합니다.
+   등록되지 않은 달은 기본 배경에 `SEASON_TINTS` 의 계절 보정만 CSS로 얹습니다.
+3. 비율이 다르면 `src/components/Stage.css` 의 `--stage-ratio` 를 맞춥니다.
+4. `?debug=1` 로 열어 `GROUND_QUAD`·`WALK_BOUNDS`·`OBSTACLES`·`HOTSPOTS` 를 눈으로 맞춥니다.
+
+그레인·라이팅 질감은 이미지가 아니라 `SceneBackground.css` 에서 CSS로 얹으므로,
+배경이 몇 장으로 늘어나도 질감은 동일하게 유지됩니다.
+
 ## 구조
 
 ```
 src/
-├── main.tsx                     진입점
-├── App.tsx / App.css            씬 위에 HUD·독·시트를 얹는 화면 조립
-├── types.ts                     DiaryEntry, Mood 데이터 모델
+├── main.tsx                      진입점
+├── App.tsx / App.css             홈 화면 조립, 월 아카이브 네비게이션, 화면 전환
+├── types.ts                      전역 타입
+├── data/
+│   ├── scene.ts                  지면 좌표계·걷는 영역·핫스팟·월별 배경  ← 좌표의 유일한 원천
+│   └── catalog.ts                상점 카탈로그 (의상·소품), 재화 이름
 ├── lib/
-│   ├── mood.ts                  키워드 기반 감정 판별 + 감정별 색/라벨
-│   └── storage.ts               localStorage 입출력, 날짜 유틸
+│   ├── geometry.ts               겹선형 보간과 역변환, 영역 판정·밀어내기
+│   ├── mood.ts                   키워드 기반 감정 판별
+│   ├── currency.ts               일일 재화 수급 확률 계산
+│   ├── date.ts                   날짜·월 포맷과 이동
+│   └── storage.ts                localStorage 래퍼 (Supabase 이전 시 이 파일만 교체)
 ├── hooks/
-│   └── useDiary.ts              기록 목록 상태 + 저장 동기화 (하루 1건)
-└── components/
-    ├── Scene.tsx                풀스크린 배경 (하늘·해·구름·언덕·잔디)
-    ├── Character.tsx            감정 prop → 색/눈/입이 바뀌는 SVG + 걷기 프레임
-    ├── CharacterStage.tsx       잔디 위를 걸어 다니는 캐릭터 배치
-    ├── DiaryDock.tsx            우측 하단 고정 입력 독 (접힘/펼침/기록 완료)
-    ├── HistoryPanel.tsx         지난 기록 바텀 시트
-    └── DiaryList.tsx            날짜순 카드 리스트
+│   ├── useGameStore.ts           기록·재화·인벤토리 상태와 저장
+│   ├── useWanderers.ts           캐릭터 자율 이동과 핫스팟 점유
+│   └── useDecorDrag.ts           꾸미기 모드 드래그 배치와 위치 보정
+├── components/
+│   ├── Stage.tsx / .css          배경·소품·캐릭터를 깊이순으로 세우는 무대
+│   ├── SceneBackground.tsx/.css  배경 이미지 + 계절 보정 + CSS 그레인·라이팅
+│   ├── PerspectiveGrid.tsx       원근 격자 (배치 판정과 같은 데이터로 계산)
+│   ├── Character.tsx / .css      캐릭터 SVG — 감정은 표정에만, 색은 의상이 결정
+│   ├── DecorSprite.tsx           소품 아트
+│   ├── DebugOverlay.tsx / .css   ?debug=1 좌표 보정 도구
+│   └── Sheet.tsx / .css          공용 바텀시트
+└── screens/
+    ├── DiaryComposer.tsx         오늘의 일기 작성
+    ├── Shop.tsx                  상점 (의상·소품, 시즌 필터)
+    ├── DressingRoom.tsx          아무 날짜 캐릭터에게나 옷 입히기
+    ├── DecorDrawer.tsx           꾸미기 모드 하단 서랍
+    └── screens.css               화면 공용 스타일
 ```
 
-## 화면 구성
+## 설계 원칙
 
-스크롤 없는 단일 씬입니다. 배경 위에 UI가 떠 있는 구조라 각 조각의 위치는 고정입니다.
+감정은 **표정에만** 영향을 줍니다. 재화 확률(`DAILY_DROP_RATE`)도, 상점 노출 조건도
+감정과 무관합니다. 슬픈 일기를 쓰면 보상이 좋아지는 식의 설계는, 감정을 과장해서 쓰게
+만드는 유인이 되므로 의도적으로 배제했습니다.
 
-- **배경 씬** — 하늘 그라데이션 위에 해·구름이 천천히 흐르고, 언덕 두 겹과 잔디가 깔립니다.
-- **캐릭터** — 저장된 기록이 잔디 영역 위를 좌우로 거닙니다. 기록 id를 해시해 크기·속도·경로·
-  걸음 주기를 정하므로, 새로고침해도 같은 캐릭터는 같은 성격으로 움직입니다. 안쪽(멀리) 캐릭터는
-  작고 옅게 그려 원근감을 줍니다.
-- **입력 독(우측 하단)** — 평소엔 버튼, 누르면 입력 카드가 펼쳐지고, 저장하면 다시 접힙니다.
-  오늘 기록이 이미 있으면 "오늘의 기록 완료" 상태로 바뀝니다 (고쳐 쓰기 가능).
-- **지난 기록(좌측 하단)** — 바텀 시트로 감정 집계와 카드 리스트를 띄웁니다.
-
-## 데이터 모델
-
-```ts
-interface DiaryEntry {
-  id: string        // 고유 id
-  date: string      // YYYY-MM-DD (로컬 타임존 기준)
-  text: string      // 일기 본문
-  mood: Mood        // 'happy' | 'sad' | 'angry' | 'neutral'
-  createdAt: number // 작성 시각
-}
-```
-
-`localStorage`의 `character-diary:entries:v1` 키에 위 객체의 배열로 저장됩니다.
-하루에 한 건만 두므로 같은 날짜로 다시 저장하면 기존 기록을 대체합니다.
-읽을 때 형식이 맞지 않는 항목은 걸러내므로, 예전 데이터가 남아 있어도 앱이 깨지지 않습니다.
-
-## 감정 판별
-
-`detectMood(text)`가 감정별 키워드 사전(한국어 어간 · 영어 · 이모지)의 등장 횟수를 세어
-가장 많은 감정을 반환합니다. 매칭이 없거나 최고 점수가 동점이면 `neutral`입니다.
-키워드는 `src/lib/mood.ts`의 `KEYWORDS`에서 바로 늘릴 수 있습니다.
-입력 중에도 같은 함수로 감정을 미리 보여줍니다.
-
-## 배포 (Vercel)
-
-레포 루트를 그대로 임포트하면 됩니다. `vercel.json`에 framework(vite), 빌드 명령,
-출력 디렉터리(`dist`), SPA rewrite가 들어 있어 추가 설정이 필요 없습니다.
+재화는 앱 로드 시 오늘이 `lastCollectedDate` 와 다를 때 **딱 1회만** 굴립니다.
+며칠 만에 들어와도 하루치만 지급되고 밀린 날짜는 소급되지 않습니다.

@@ -1,18 +1,13 @@
 :root {
-  /* 하늘 · 잔디 — 파스텔 힐링 톤 */
+  /* 채도를 유지한 웜톤 파스텔 — 탁하지 않게 (스펙 4장) */
   --sky-top: #9fdcf3;
   --sky-mid: #c7ecf7;
   --sky-low: #e8f7ee;
-  --hill-far: #cfe9b0;
-  --hill-mid: #b2dd93;
-  --grass-top: #9ad47b;
-  --grass-bottom: #7fc063;
-  --sun: #fff4c9;
 
   /* UI 표면 */
   --surface: #fffdf6;
-  --surface-soft: #f6efe0;
-  --border: rgba(120, 95, 60, 0.14);
+  --surface-soft: #f4ecdb;
+  --border: rgba(120, 95, 60, 0.16);
 
   /* 텍스트 */
   --ink: #5a4a38;
@@ -24,13 +19,14 @@
   --leaf-deep: #6aa84a;
   --peach: #ffc79a;
   --peach-deep: #f0a468;
+  --berry: #e6a8c4;
 
   /* 모양 */
   --radius-lg: 26px;
   --radius-md: 18px;
   --radius-pill: 999px;
   --shadow-soft: 0 10px 30px -14px rgba(90, 74, 56, 0.45);
-  --shadow-lift: 0 16px 36px -16px rgba(90, 74, 56, 0.55);
+  --shadow-lift: 0 18px 40px -18px rgba(90, 74, 56, 0.6);
 
   font-family: 'Gowun Dodum', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
     'Malgun Gothic', sans-serif;
@@ -40,13 +36,14 @@
   -webkit-font-smoothing: antialiased;
 }
 
-/* 제목 · 버튼처럼 눈에 띄는 요소는 더 둥근 서체로 */
+/* 제목·버튼처럼 눈에 띄는 요소는 더 둥근 서체로 */
 .display {
   font-family: 'Jua', 'Gowun Dodum', sans-serif;
   letter-spacing: 0.01em;
 }
 
 * {
+  box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -58,9 +55,10 @@ body,
 
 body {
   margin: 0;
-  /* 스크롤 없이 하나의 공간처럼 보이도록 */
+  /* 한 화면 안에서 끝나는 공간처럼 보이도록 */
   overflow: hidden;
   overscroll-behavior: none;
+  /* 배경 이미지가 뜨기 전에도 흰 화면이 보이지 않게 */
   background: var(--sky-mid);
 }
 

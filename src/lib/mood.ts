@@ -58,10 +58,13 @@ function countOccurrences(haystack: string, needle: string): number {
   return count
 }
 
-/** 감정별 표시용 메타데이터 (라벨/이모지/캐릭터 색상). */
-export const MOOD_META: Record<Mood, { label: string; emoji: string; body: string; shade: string }> = {
-  happy: { label: '행복', emoji: '😊', body: '#ffd166', shade: '#f0a202' },
-  sad: { label: '슬픔', emoji: '😢', body: '#8ecae6', shade: '#3d86a8' },
-  angry: { label: '화남', emoji: '😠', body: '#ff8a80', shade: '#d64545' },
-  neutral: { label: '보통', emoji: '😐', body: '#cfd8d3', shade: '#8a9a94' },
+/**
+ * 감정별 표시용 라벨. 캐릭터 색은 의상이 결정하므로 여기에는 색이 없다 —
+ * 감정이 캐릭터의 생김새나 가치에 영향을 주지 않게 하려는 의도다 (스펙 1장).
+ */
+export const MOOD_META: Record<Mood, { label: string; emoji: string }> = {
+  happy: { label: '행복', emoji: '😊' },
+  sad: { label: '슬픔', emoji: '😢' },
+  angry: { label: '화남', emoji: '😠' },
+  neutral: { label: '보통', emoji: '😐' },
 }
