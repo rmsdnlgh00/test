@@ -175,16 +175,27 @@ export interface Hotspot {
   label: string
 }
 
-/** 배경 그림에서 문과 벤치가 놓인 자리. 핫스팟은 그 '앞'에 선다. */
+/** 배경 그림에서 문과 벤치가 놓인 자리. */
 export const GATE_UV: Uv = { u: 0.5, v: 0.03 }
 export const BENCH_UV: Uv = { u: 0.8, v: 0.52 }
 
 /**
+ * 벤치 앉는 판의 높이 (SVG 작도 단위, 밑동에서 위로).
+ *
+ * 캐릭터 키에 맞춰 놓은 값이다. 무대에 선 캐릭터는 대략 100 단위 높이라,
+ * 19 면 키의 5분의 1쯤 — 앉으면 엉덩이가 살짝 내려앉고 무릎이 앞으로 접힌다.
+ * 이걸 올리면 캐릭터가 걸터앉지 못하고 판 위에 뜬 것처럼 보인다.
+ * SceneArt 의 Bench 와 Character 의 앉은 자세가 함께 쓰는 값이다.
+ */
+export const BENCH_SEAT = 19
+
+/**
  * 문·벤치 상호작용 지점 (스펙 7장).
  * 캐릭터가 여기로 걸어가 도착하면 상태가 바뀐다 — 문은 열린 표시가 켜지고,
- * 벤치는 앉은 포즈로 교체된다.
+ * 벤치는 앉은 포즈로 교체된다. 문 핫스팟만 문 '앞'에 선다.
  */
 export const HOTSPOTS: readonly Hotspot[] = [
   { id: 'gate', kind: 'gate', uv: { u: 0.5, v: 0.19 }, label: '울타리 문' },
-  { id: 'bench-pond', kind: 'bench', uv: { u: 0.8, v: 0.57 }, label: '벤치' },
+  // 벤치와 같은 자리에 선다 — 조금이라도 앞에 서면 앉았을 때 판에서 흘러내려 보인다.
+  { id: 'bench-pond', kind: 'bench', uv: BENCH_UV, label: '벤치' },
 ]

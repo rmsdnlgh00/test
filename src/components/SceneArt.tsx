@@ -3,6 +3,7 @@ import type { Uv } from '../types'
 import type { UvRect } from '../lib/geometry'
 import { uvToPoint } from '../lib/geometry'
 import {
+  BENCH_SEAT,
   BENCH_UV,
   FLOWER_BED,
   GATE_UV,
@@ -484,6 +485,17 @@ export function SceneArt({ palette }: { palette: ScenePalette }) {
           )
         })}
 
+      {/*
+       * 잔디판 좌우를 메우는 나무.
+       *
+       * 잔디판이 사다리꼴이라 양옆에는 잔디만 남아 허전했다. 잔디판 가장자리에서
+       * 바깥으로 밀어 낸 자리에 심되, 깊이 순(y)으로 그려야 앞뒤가 뒤집히지 않는다.
+       * 잔디판보다 나중에 그리므로 가지가 마당 위로 조금 드리운다.
+       */}
+      {backdrop.sideTrees.map((tree, i) => (
+        <Tree key={`side-${i}`} id={`s${i}`} spec={tree} palette={palette} />
+      ))}
+
       {/* 화면 좌우 앞쪽의 큰 나무 — 가까이서 들여다보는 느낌을 만든다 */}
       {backdrop.frontTrees.map((tree, i) => (
         <Tree key={`front-${i}`} id={`f${i}`} spec={tree} palette={palette} />
@@ -716,21 +728,84 @@ function Fence({ palette, groundY }: { palette: ScenePalette; groundY: number })
   )
 }
 
+/**
+ * 공원 벤치.
+ *
+ * 앉는 높이(BENCH_SEAT)는 캐릭터 키에 맞춰 놓은 값이다 — 이걸 올리면 캐릭터가
+ * 벤치에 걸터앉지 못하고 공중에 뜬다. Character 의 앉은 자세와 짝이므로 같이 본다.
+ *
+ * 예전 그림은 기둥에 가로 살대만 얹은 모양이라 울타리 한 조각처럼 보였다.
+ * 앉는 판을 위에서 내려다본 면(사다리꼴)으로 그리고 앞면 두께와 팔걸이를 붙이면,
+ * 가로 살대가 몇 개든 벤치로 읽힌다.
+ */
 function Bench({ palette }: { palette: ScenePalette }) {
   const p = at(BENCH_UV)
-  const w = 118
+  const seatY = p.y - BENCH_SEAT
+  const backY = seatY - 26
+  const halfBack = 46
+  const halfFront = 54
+
+  const leg = (x: number, top: number, bottom: number, w: number) => (
+    <rect x={x - w / 2} y={top} width={w} height={bottom - top} rx={2} fill={palette.fenceDark} />
+  )
 
   return (
     <g>
-      <ellipse cx={p.x} cy={p.y} rx={w * 0.5} ry={10} fill={SHADE} opacity="0.2" />
-      <rect x={p.x - w / 2 + 11} y={p.y - 72} width={9} height={42} fill={palette.fenceDark} />
-      <rect x={p.x + w / 2 - 20} y={p.y - 72} width={9} height={42} fill={palette.fenceDark} />
-      <rect x={p.x - w / 2} y={p.y - 64} width={w} height={11} rx={4} fill={palette.fence} />
-      <rect x={p.x - w / 2} y={p.y - 64} width={w} height={4} rx={2} fill={SUNLIT} opacity="0.3" />
-      <rect x={p.x - w / 2} y={p.y - 38} width={w} height={13} rx={4} fill={palette.fence} />
-      <rect x={p.x - w / 2} y={p.y - 38} width={w} height={4} rx={2} fill={SUNLIT} opacity="0.3" />
-      <rect x={p.x - w / 2 + 11} y={p.y - 27} width={10} height={27} fill={palette.fenceDark} />
-      <rect x={p.x + w / 2 - 21} y={p.y - 27} width={10} height={27} fill={palette.fenceDark} />
+      <ellipse cx={p.x} cy={p.y} rx={halfFront + 4} ry={9} fill={SHADE} opacity="0.2" />
+
+      {/* 뒷다리와 등받이 기둥 — 앉는 판보다 먼저 그려 뒤로 보낸다 */}
+      {leg(p.x - halfBack + 6, seatY - 4, p.y - 5, 6)}
+      {leg(p.x + halfBack - 6, seatY - 4, p.y - 5, 6)}
+      {leg(p.x - halfBack + 4, backY - 4, seatY, 7)}
+      {leg(p.x + halfBack - 4, backY - 4, seatY, 7)}
+
+      {/* 등받이 살대 */}
+      <rect x={p.x - halfBack} y={backY - 4} width={halfBack * 2} height={8} rx={4} fill={palette.fence} />
+      <rect x={p.x - halfBack} y={backY - 4} width={halfBack * 2} height={3} rx={1.5} fill={SUNLIT} opacity="0.3" />
+      <rect x={p.x - halfBack} y={backY + 9} width={halfBack * 2} height={8} rx={4} fill={palette.fence} />
+      <rect x={p.x - halfBack} y={backY + 9} width={halfBack * 2} height={3} rx={1.5} fill={SUNLIT} opacity="0.3" />
+
+      {/* 앉는 판 — 위에서 내려다본 면이라 뒤가 좁은 사다리꼴이다 */}
+      <path
+        d={
+          `M${p.x - halfBack} ${seatY} L${p.x + halfBack} ${seatY} ` +
+          `L${p.x + halfFront} ${seatY + 7} L${p.x - halfFront} ${seatY + 7} Z`
+        }
+        fill={palette.fence}
+      />
+      {/* 판자 이음선 */}
+      <path
+        d={`M${p.x - halfBack + 30} ${seatY} L${p.x - halfFront + 34} ${seatY + 7}`}
+        stroke={palette.fenceDark}
+        strokeWidth="1.4"
+        opacity="0.4"
+      />
+      <path
+        d={`M${p.x + halfBack - 30} ${seatY} L${p.x + halfFront - 34} ${seatY + 7}`}
+        stroke={palette.fenceDark}
+        strokeWidth="1.4"
+        opacity="0.4"
+      />
+      {/* 앞면 두께 */}
+      <rect
+        x={p.x - halfFront}
+        y={seatY + 7}
+        width={halfFront * 2}
+        height={6}
+        rx={2}
+        fill={palette.fenceDark}
+        opacity="0.75"
+      />
+
+      {/* 팔걸이 */}
+      {leg(p.x - halfFront + 5, seatY - 12, seatY + 4, 5)}
+      {leg(p.x + halfFront - 5, seatY - 12, seatY + 4, 5)}
+      <rect x={p.x - halfFront} y={seatY - 15} width={16} height={5} rx={2.5} fill={palette.fence} />
+      <rect x={p.x + halfFront - 16} y={seatY - 15} width={16} height={5} rx={2.5} fill={palette.fence} />
+
+      {/* 앞다리 */}
+      {leg(p.x - halfFront + 8, seatY + 12, p.y, 7)}
+      {leg(p.x + halfFront - 8, seatY + 12, p.y, 7)}
     </g>
   )
 }
@@ -754,6 +829,30 @@ function buildBackdrop() {
     roll: random(),
   }))
 
+  /*
+   * 잔디판 좌우의 빈 잔디를 메우는 나무.
+   *
+   * 자리는 잔디판 가장자리에서 뽑는다 — 사다리꼴이 기울어 있어 x 를 고정하면
+   * 위쪽은 잔디를 파고들고 아래쪽은 화면 밖으로 나간다. 수관 반지름만큼
+   * 더 밀어 내야 마당을 덮지 않는다.
+   */
+  const sideTrees: TreeSpec[] = Array.from({ length: 18 }, (_, i) => {
+    const side = i % 2 === 0 ? -1 : 1
+    const v = 0.04 + (Math.floor(i / 2) / 8) * 1.0 + (random() - 0.5) * 0.1
+    const edge = at({ u: side < 0 ? 0 : 1, v })
+    const size = 118 + v * 210 + random() * 70
+    return {
+      x: edge.x + side * (46 + size * 0.5 + random() * 70),
+      y: edge.y + (random() - 0.5) * 26,
+      size,
+      tone: Math.floor(random() * 3) as 0 | 1 | 2,
+      roll: random(),
+    }
+  })
+    // 수관이 화면에 걸리지도 않는 나무는 그릴 필요가 없다.
+    .filter((tree) => tree.x + tree.size > 0 && tree.x - tree.size < SVG_WIDTH)
+    .sort((a, b) => a.y - b.y)
+
   const frontTrees: TreeSpec[] = [
     { x: -30, y: 900, size: 420, tone: 0, roll: 0.92 },
     { x: 1640, y: 930, size: 450, tone: 1, roll: 0.08 },
@@ -772,7 +871,7 @@ function buildBackdrop() {
     { x: 664, y: 208, s: 6 },
   ]
 
-  return { trees, farTrees, frontTrees, clouds, birds }
+  return { trees, farTrees, sideTrees, frontTrees, clouds, birds }
 }
 
 /** 잔디 위 요소는 uv 로 배치해 원근을 그대로 따르게 한다. */

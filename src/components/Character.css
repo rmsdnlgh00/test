@@ -98,18 +98,15 @@
   }
 }
 
-/* 벤치에 앉은 포즈 — 상체를 내리고 다리를 앞으로 접는다. */
+/*
+ * 벤치에 앉은 포즈.
+ *
+ * 접힌 다리는 Character 가 따로 그린다 — 서 있는 다리를 여기서 통째로 돌려 쓰면
+ * 몸통 뒤로 들어가 다리가 보이지 않았다. 여기서는 상체를 앉는 판 높이만큼
+ * 내려앉히는 일만 한다.
+ */
 .char--sitting .char__body-group {
-  transform: translateY(7px);
-}
-
-.char--sitting .char__legs {
-  transform: translate(4px, -4px) rotate(-64deg);
-  transform-origin: 50px 66px;
-}
-
-.char--sitting .char__feet {
-  transform: translate(15px, -16px);
+  transform: translateY(6px);
 }
 
 .char--sitting .char__shadow {

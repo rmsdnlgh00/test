@@ -51,6 +51,7 @@ export function Character({
   const topShape = (top?.shape ?? 'tee') as TopShape
   const bottomShape = (bottom?.shape ?? 'shorts') as BottomShape
 
+  const sitting = activity === 'sitting'
   // 치마는 다리를 덮으므로 바짓단을 그리지 않는다.
   const legWear = bottomShape === 'skirt' ? 0 : bottomShape === 'shorts' ? 8 : 20
   const sleeveLong = topShape !== 'tee'
@@ -58,7 +59,7 @@ export function Character({
   const classes = [
     'char',
     activity === 'walking' ? 'char--walking' : '',
-    activity === 'sitting' ? 'char--sitting' : '',
+    sitting ? 'char--sitting' : '',
     className,
   ]
     .filter(Boolean)
@@ -76,30 +77,37 @@ export function Character({
     >
       <ellipse className="char__shadow" cx="50" cy="94" rx="19" ry="3.8" fill="rgba(60,80,40,0.22)" />
 
-      {/* 다리 — 맨다리 위에 바짓단을 겹쳐 입힌다. 걷기 애니메이션이 이 묶음을 흔든다. */}
-      <g className="char__legs">
-        <g className="char__leg char__leg--l">
-          <rect x="41" y="64" width="7.5" height="26" rx="3.7" fill={SKIN} />
-          {legWear > 0 && (
-            <rect x="40.4" y="64" width="8.7" height={legWear} rx="3.4" fill={bottomColor} />
-          )}
-        </g>
-        <g className="char__leg char__leg--r">
-          <rect x="51.5" y="64" width="7.5" height="26" rx="3.7" fill={SKIN} />
-          {legWear > 0 && (
-            <rect x="50.9" y="64" width="8.7" height={legWear} rx="3.4" fill={bottomColor} />
-          )}
-        </g>
-      </g>
+      {!sitting && (
+        <>
+          {/* 다리 — 맨다리 위에 바짓단을 겹쳐 입힌다. 걷기 애니메이션이 이 묶음을 흔든다. */}
+          <g className="char__legs">
+            <g className="char__leg char__leg--l">
+              <rect x="41" y="64" width="7.5" height="26" rx="3.7" fill={SKIN} />
+              {legWear > 0 && (
+                <rect x="40.4" y="64" width="8.7" height={legWear} rx="3.4" fill={bottomColor} />
+              )}
+            </g>
+            <g className="char__leg char__leg--r">
+              <rect x="51.5" y="64" width="7.5" height="26" rx="3.7" fill={SKIN} />
+              {legWear > 0 && (
+                <rect x="50.9" y="64" width="8.7" height={legWear} rx="3.4" fill={bottomColor} />
+              )}
+            </g>
+          </g>
 
-      <g className="char__feet" fill={SHOE}>
-        <ellipse className="char__foot char__foot--l" cx="44.5" cy="90.5" rx="6.6" ry="3.4" />
-        <ellipse className="char__foot char__foot--r" cx="55.5" cy="90.5" rx="6.6" ry="3.4" />
-      </g>
+          <g className="char__feet" fill={SHOE}>
+            <ellipse className="char__foot char__foot--l" cx="44.5" cy="90.5" rx="6.6" ry="3.4" />
+            <ellipse className="char__foot char__foot--r" cx="55.5" cy="90.5" rx="6.6" ry="3.4" />
+          </g>
+        </>
+      )}
 
       <g className="char__body-group">
         {/* 하의 허리 — 움직이는 다리 위쪽을 덮어 이음매를 가린다 */}
-        <Bottom shape={bottomShape} color={bottomColor} shade={bottomShade} />
+        <Bottom shape={bottomShape} color={bottomColor} shade={bottomShade} sitting={sitting} />
+
+        {/* 앉은 다리는 무릎 담요 같은 하의 '위'로 나와야 보인다 */}
+        {sitting && <SeatedLegs color={bottomColor} covered={bottomShape === 'pants'} />}
 
         {/* 뒤쪽 팔은 몸통보다 먼저 */}
         <Arm
@@ -124,6 +132,48 @@ export function Character({
       </g>
     </svg>
   )
+}
+
+/**
+ * 벤치에 앉은 다리.
+ *
+ * 서 있는 다리를 CSS 로 통째로 돌려 쓰던 예전 방식은, 접힌 다리가 몸통 뒤로
+ * 들어가 아예 보이지 않았다. 앉은 자세는 아예 다른 그림이라 따로 그린다.
+ *
+ * 정면에서 보면 허벅지는 앞으로 접혀 짧아 보이고(원근 단축) 종아리만 바닥으로
+ * 내려간다. 무릎을 좌우로 조금 벌려야 다리 두 짝이 겹치지 않고 읽힌다.
+ * 허리 높이는 scene.ts 의 BENCH_SEAT 과 짝이다.
+ */
+function SeatedLegs({ color, covered }: { color: string; covered: boolean }) {
+  // body-group 이 아래로 6 내려간 뒤를 기준으로 잡은 좌표다.
+  const leg = (side: -1 | 1) => {
+    const x = 50 + side * 11
+    return (
+      <g key={side}>
+        {/* 종아리 — 허벅지는 무릎 위 하의가 대신한다(정면이라 앞으로 접혀 안 보인다) */}
+        <path
+          d={`M${x} 71 L${x} 84`}
+          stroke={SKIN}
+          strokeWidth="8.4"
+          strokeLinecap="round"
+          fill="none"
+        />
+        {/* 바지는 정강이 중간까지 내려온다. 치마·반바지는 맨다리 그대로 */}
+        {covered && (
+          <path
+            d={`M${x} 70 L${x} 78`}
+            stroke={color}
+            strokeWidth="9"
+            strokeLinecap="round"
+            fill="none"
+          />
+        )}
+        <ellipse cx={x} cy="86.5" rx="6.4" ry="3.3" fill={SHOE} />
+      </g>
+    )
+  }
+
+  return <g className="char__legs">{[leg(-1), leg(1)]}</g>
 }
 
 function Head() {
@@ -215,11 +265,38 @@ function Bottom({
   shape,
   color,
   shade,
+  sitting = false,
 }: {
   shape: BottomShape
   color: string
   shade: string
+  sitting?: boolean
 }) {
+  /*
+   * 앉으면 허벅지가 앞으로 접혀 정면에서는 보이지 않는다. 그래서 하의도 종류를
+   * 가리지 않고 무릎 위를 덮는 한 덩어리가 된다 — 서 있을 때의 긴 치마·바지를
+   * 그대로 두면 종아리를 전부 덮어 다리가 사라진다.
+   */
+  if (sitting) {
+    return (
+      <g>
+        <path
+          d="M39.5 58 L60.5 58 Q67 66 66 71.5 Q50 75 34 71.5 Q33 66 39.5 58 Z"
+          fill={color}
+          stroke={shade}
+          strokeWidth="1.3"
+          strokeLinejoin="round"
+        />
+        {/* 무릎 위로 지는 그늘 — 앉은 면이 앞으로 꺾인 걸 보여 준다 */}
+        <path
+          d="M34.4 68.5 Q50 72 65.6 68.5 Q66.2 70.2 66 71.5 Q50 75 34 71.5 Q33.8 70.2 34.4 68.5 Z"
+          fill={shade}
+          opacity="0.35"
+        />
+      </g>
+    )
+  }
+
   if (shape === 'skirt') {
     return (
       <g>
