@@ -1,0 +1,46 @@
+.leaves {
+  position: absolute;
+  inset: 0;
+  /* 무대와 아래쪽 땅 필러 위로 — 잎이 땅 경계에서 공중에 잘리지 않게 */
+  z-index: 2;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* 떨어지는 잎. 위치·속도·회전은 인라인 스타일로 잎마다 다르게 준다. */
+.leaves__leaf {
+  position: absolute;
+  top: 0;
+  aspect-ratio: 1 / 0.66;
+  /* 한쪽 끝만 뾰족하게 — 동그란 점이 아니라 잎으로 읽힌다 */
+  border-radius: 60% 0 60% 0;
+  opacity: 0;
+  will-change: transform;
+  animation-name: leaf-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes leaf-fall {
+  0% {
+    transform: translate3d(0, -14vh, 0) rotate(0deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.8;
+  }
+  88% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate3d(var(--leaf-drift, 6vw), 118vh, 0) rotate(var(--leaf-spin, 540deg));
+    opacity: 0;
+  }
+}
+
+/* 움직임을 줄여 달라고 했으면 잎은 내리지 않는다 */
+@media (prefers-reduced-motion: reduce) {
+  .leaves {
+    display: none;
+  }
+}

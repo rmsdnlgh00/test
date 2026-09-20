@@ -97,7 +97,7 @@ export function SceneArt({ palette }: { palette: ScenePalette }) {
   const frontRight = at({ u: 1, v: 1 })
   const backLeft = at({ u: 0, v: 0 })
   const midX = (frontLeft.x + frontRight.x) / 2
-  const plinth = 64
+  const plinth = 44
 
   const pond = ovalOf(POND)
   const bed = ovalOf(FLOWER_BED)
@@ -153,8 +153,9 @@ export function SceneArt({ palette }: { palette: ScenePalette }) {
       </defs>
 
       <rect width={SVG_WIDTH} height={SVG_HEIGHT} fill="url(#art-sky)" />
-      <circle cx={1310} cy={132} r={250} fill="url(#art-sun-halo)" />
-      <circle cx={1310} cy={132} r={78} fill="url(#art-sun)" />
+      {/* 해무리가 프레임 맨 윗줄까지 번지면 위쪽 하늘 필러와 이음매가 드러난다 */}
+      <circle cx={1310} cy={176} r={168} fill="url(#art-sun-halo)" />
+      <circle cx={1310} cy={176} r={74} fill="url(#art-sun)" />
 
       {/* 구름 */}
       {backdrop.clouds.map((cloud, i) => (
@@ -272,7 +273,7 @@ export function SceneArt({ palette }: { palette: ScenePalette }) {
         d={
           `M${frontLeft.x} ${frontLeft.y} L${frontRight.x} ${frontRight.y} ` +
           `L${frontRight.x} ${frontRight.y + plinth} ` +
-          `Q${midX} ${frontRight.y + plinth + 28} ${frontLeft.x} ${frontLeft.y + plinth} Z`
+          `Q${midX} ${frontRight.y + plinth + 18} ${frontLeft.x} ${frontLeft.y + plinth} Z`
         }
         fill={palette.soil}
       />
@@ -280,7 +281,7 @@ export function SceneArt({ palette }: { palette: ScenePalette }) {
         d={
           `M${frontLeft.x} ${frontLeft.y + plinth * 0.5} L${frontRight.x} ${frontRight.y + plinth * 0.5} ` +
           `L${frontRight.x} ${frontRight.y + plinth} ` +
-          `Q${midX} ${frontRight.y + plinth + 28} ${frontLeft.x} ${frontLeft.y + plinth} Z`
+          `Q${midX} ${frontRight.y + plinth + 18} ${frontLeft.x} ${frontLeft.y + plinth} Z`
         }
         fill={palette.soilDark}
         opacity="0.5"

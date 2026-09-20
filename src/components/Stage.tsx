@@ -1,5 +1,5 @@
 import { forwardRef, useMemo } from 'react'
-import type { PointerEvent as ReactPointerEvent } from 'react'
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react'
 import type { Agent, PlacedDecor } from '../types'
 import {
   CHARACTER_HEIGHT,
@@ -10,7 +10,10 @@ import {
 } from '../data/scene'
 import { depthScale, pointToUv, uvToPoint } from '../lib/geometry'
 import { decorById, outfitInSlot } from '../data/catalog'
+import { paletteFor } from '../data/season'
+import { mixHex } from '../lib/color'
 import { SceneBackground } from './SceneBackground'
+import { FallingLeaves } from './FallingLeaves'
 import { PerspectiveGrid } from './PerspectiveGrid'
 import { DecorSprite } from './DecorSprite'
 import { Character } from './Character'
@@ -78,6 +81,27 @@ export const Stage = forwardRef<HTMLDivElement, StageProps>(function Stage(
     return [...decorSprites, ...agentSprites].sort((a, b) => a.y - b.y)
   }, [placed, agents])
 
+  /*
+   * 프레임 밖을 메울 색.
+   *
+   * 세로로 긴 화면에서는 장면 전체를 보여 주려고 프레임 폭을 화면에 맞추는데,
+   * 그러면 16:9 프레임이 화면 가운데 띠만 차지하고 위아래가 빈다. 그 위아래를
+   * 그림의 맨 윗줄(하늘)·맨 아랫줄(들판)과 같은 색으로 채워 한 장면처럼 잇는다.
+   * SceneArt 가 들판을 SHADE 13% 로 눌러 그리므로 여기서도 같은 값을 쓴다.
+   */
+  const sceneVars = useMemo(() => {
+    const palette = paletteFor(month)
+    const ground = mixHex(palette.grassBottom, '#4a3418', 0.13)
+    return {
+      '--scene-sky': palette.skyTop,
+      '--scene-sky-high': mixHex(palette.skyTop, '#1d4d70', 0.16),
+      '--scene-ground': ground,
+      '--scene-ground-deep': mixHex(ground, '#4a3418', 0.22),
+    } as CSSProperties
+  }, [month])
+
+  const palette = useMemo(() => paletteFor(month), [month])
+
   const openGates = useMemo(
     () =>
       HOTSPOTS.filter(
@@ -89,7 +113,7 @@ export const Stage = forwardRef<HTMLDivElement, StageProps>(function Stage(
   )
 
   return (
-    <div className={decorating ? 'stage is-decorating' : 'stage'}>
+    <div className={decorating ? 'stage is-decorating' : 'stage'} style={sceneVars}>
       <div className="stage__frame" ref={frameRef}>
         <SceneBackground month={month} />
 
@@ -124,6 +148,9 @@ export const Stage = forwardRef<HTMLDivElement, StageProps>(function Stage(
 
         {debug && <DebugOverlay agents={agents} />}
       </div>
+
+      {/* 잎은 프레임이 아니라 화면 전체에 내린다 */}
+      {palette.fallenLeaves && <FallingLeaves palette={palette} />}
     </div>
   )
 })
