@@ -74,7 +74,12 @@ export function Shop({ open, month, wallet, inventory, onBuy, onClose }: ShopPro
             <li key={item.id} className="card">
               <div className="card__art">
                 {item.type === 'outfit' ? (
-                  <Character mood="neutral" outfit={item} className="card__sprite" />
+                  <Character
+                    mood="neutral"
+                    top={item.slot === 'top' ? item : undefined}
+                    bottom={item.slot === 'bottom' ? item : undefined}
+                    className="card__sprite"
+                  />
                 ) : (
                   <DecorSprite art={item.art} className="card__sprite" />
                 )}

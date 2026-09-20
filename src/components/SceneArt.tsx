@@ -52,6 +52,13 @@ const lawnBand = (v0: number, v1: number) =>
     { u: 0, v: v1 },
   ])
 
+/**
+ * 잔디판 바깥의 들판. 지평선 부근에서 시작해 화면 아래 끝까지 좌우로 가득 찬다.
+ * 윗선을 살짝 물결치게 두면 자로 그은 띠처럼 보이지 않는다.
+ */
+const MEADOW =
+  `M0 ${SVG_HEIGHT} L0 486 Q400 472 800 480 Q1200 488 1600 474 L1600 ${SVG_HEIGHT} Z`
+
 /** 잎 한 장. 끝이 뾰족한 렌즈 모양이라야 동그란 점으로 보이지 않는다. */
 const leafPath = (cx: number, cy: number, r: number) =>
   `M${cx} ${cy - r} Q${cx + r * 0.85} ${cy} ${cx} ${cy + r} Q${cx - r * 0.85} ${cy} ${cx} ${cy - r} Z`
@@ -219,6 +226,47 @@ export function SceneArt({ palette }: { palette: ScenePalette }) {
         <Tree key={`tree-${i}`} id={`t${i}`} spec={tree} palette={palette} />
       ))}
 
+      {/*
+       * 잔디판 바깥으로 이어지는 들판.
+       *
+       * 잔디판이 사다리꼴이라 그 좌우 아래쪽에는 아무것도 없는 하늘색 쐐기가
+       * 남아, 땅이 가다 만 것처럼 잘려 보였다. 화면 좌우 끝까지 땅을 깔아
+       * 잔디판이 넓은 들판 위에 놓인 단으로 읽히게 한다.
+       * 정원 안쪽보다 한 톤 어둡게 눌러야 시선이 계속 가운데로 모인다.
+       */}
+      <path d={MEADOW} fill="url(#art-grass)" />
+      <path d={MEADOW} fill={SHADE} opacity="0.13" />
+      <rect x="0" y="452" width={SVG_WIDTH} height="120" fill="url(#art-haze)" />
+
+      {/* 들판 위의 풀포기와 낙엽 — 좌우가 허전하지 않게 */}
+      {scatter.meadow.map((spot, i) => (
+        <path
+          key={`meadow-tuft-${i}`}
+          d={
+            `M${spot.x} ${spot.y} q${-5 * spot.s} ${-9 * spot.s} ${-9 * spot.s} ${-13 * spot.s} ` +
+            `M${spot.x} ${spot.y} q${1 * spot.s} ${-10 * spot.s} ${2 * spot.s} ${-15 * spot.s} ` +
+            `M${spot.x} ${spot.y} q${6 * spot.s} ${-8 * spot.s} ${10 * spot.s} ${-12 * spot.s}`
+          }
+          stroke={palette.grassBottom}
+          strokeWidth={2.4 * spot.s}
+          strokeLinecap="round"
+          fill="none"
+          opacity="0.5"
+        />
+      ))}
+      {palette.fallenLeaves &&
+        scatter.meadow
+          .filter((spot) => spot.leaf)
+          .map((spot, i) => (
+            <path
+              key={`meadow-leaf-${i}`}
+              d={leafPath(spot.x + 14 * spot.s, spot.y + 6, 8 * spot.s)}
+              fill={palette.accent}
+              opacity="0.55"
+              transform={`rotate(${spot.rotation} ${spot.x} ${spot.y})`}
+            />
+          ))}
+
       {/* 디오라마 받침 — 잔디 평면의 두께 */}
       <path
         d={
@@ -237,6 +285,9 @@ export function SceneArt({ palette }: { palette: ScenePalette }) {
         fill={palette.soilDark}
         opacity="0.5"
       />
+
+      {/* 잔디판이 들판에 드리우는 그림자 — 단이 떠 보이지 않게 바닥에 붙인다 */}
+      <path d={lawnBand(0, 1)} fill={SHADE} opacity="0.16" transform="translate(6 8)" />
 
       {/* 잔디 평면 */}
       <path d={lawnBand(0, 1)} fill="url(#art-grass)" />
@@ -741,5 +792,23 @@ function buildScatter() {
   /** 잔디 결 — 한 칸 걸러 한 칸씩만 밝게 칠한다. */
   const mowBands = Array.from({ length: 5 }, (_, i) => ({ v0: i * 0.2, v1: i * 0.2 + 0.1 }))
 
-  return { blooms, stones, pondStones, tufts, leaves, mowBands }
+  /*
+   * 들판의 풀포기. 잔디판 가장자리에서 바깥으로 밀어 내 심는다 —
+   * 예전에 아무것도 없어 비어 보이던 바로 그 자리다.
+   */
+  const meadow = Array.from({ length: 46 }, () => {
+    const side = random() < 0.5 ? -1 : 1
+    const edge = at({ u: side < 0 ? 0 : 1, v: 0.1 + random() * 0.9 })
+    const x = edge.x + side * (34 + random() * 300)
+    const y = edge.y + (random() - 0.5) * 26
+    return {
+      x,
+      y,
+      s: 0.45 + ((y - 470) / (SVG_HEIGHT - 470)) * 0.85,
+      leaf: random() < 0.45,
+      rotation: random() * 180,
+    }
+  }).filter((spot) => spot.x > -20 && spot.x < SVG_WIDTH + 20 && spot.y > 500)
+
+  return { blooms, stones, pondStones, tufts, leaves, mowBands, meadow }
 }

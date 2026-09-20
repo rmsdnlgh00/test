@@ -233,20 +233,48 @@
   overflow: hidden;
 }
 
+/* 상의·하의를 각각 한 줄씩 — 어느 칸을 고르는 중인지 헷갈리지 않게 */
+.dress__slot {
+  margin-top: 16px;
+}
+
+.dress__slot-title {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
 .dress__outfits {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 14px;
+  margin-top: 8px;
+}
+
+.dress__none {
+  font-size: 12px;
+  color: var(--ink-faint);
+  align-self: center;
 }
 
 .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
   padding: 8px 14px;
   background: #fffefa;
   font-size: 13px;
   cursor: pointer;
+}
+
+/* 옷 색을 이름 옆에 작게 보여 준다 */
+.chip__swatch {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
 }
 
 .chip.is-active {

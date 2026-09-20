@@ -1,25 +1,50 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { DiaryEntry, Inventory, Mood, PlacedDecor, Wallet } from '../types'
+import type { DiaryEntry, Inventory, Mood, OutfitSet, OutfitSlot, PlacedDecor, Wallet } from '../types'
 import { STORAGE_KEYS, readJson, writeJson } from '../lib/storage'
 import { createId, todayISO } from '../lib/date'
 import { detectMood } from '../lib/mood'
 import { collectDailyCurrency } from '../lib/currency'
-import { STARTER_OUTFITS, itemById } from '../data/catalog'
+import { DEFAULT_OUTFIT, STARTER_OUTFITS, itemById, outfitInSlot } from '../data/catalog'
 
 const MOODS: Mood[] = ['happy', 'sad', 'angry', 'neutral']
 
+/**
+ * 저장된 의상을 현재 모델로 맞춘다.
+ *
+ * 예전 저장본은 의상이 한 칸(문자열 하나)이었다. 그 id 들은 지금 카탈로그에
+ * 없으므로 살려낼 수가 없어, 기본 한 벌을 입혀 내보낸다.
+ */
+function reviveOutfit(raw: unknown): OutfitSet {
+  if (typeof raw === 'object' && raw !== null) {
+    const o = raw as Record<string, unknown>
+    return {
+      top: outfitInSlot(typeof o.top === 'string' ? o.top : null, 'top')?.id ?? null,
+      bottom: outfitInSlot(typeof o.bottom === 'string' ? o.bottom : null, 'bottom')?.id ?? null,
+    }
+  }
+  return { ...DEFAULT_OUTFIT }
+}
+
 function reviveEntries(raw: unknown): DiaryEntry[] | null {
   if (!Array.isArray(raw)) return null
-  return raw.filter((value): value is DiaryEntry => {
-    if (typeof value !== 'object' || value === null) return false
-    const e = value as Record<string, unknown>
-    return (
-      typeof e.date === 'string' &&
-      typeof e.text === 'string' &&
-      MOODS.includes(e.mood as Mood) &&
-      (e.outfit === null || typeof e.outfit === 'string')
-    )
-  })
+  return raw
+    .filter((value) => {
+      if (typeof value !== 'object' || value === null) return false
+      const e = value as Record<string, unknown>
+      return (
+        typeof e.date === 'string' && typeof e.text === 'string' && MOODS.includes(e.mood as Mood)
+      )
+    })
+    .map((value) => {
+      const e = value as Record<string, unknown>
+      return {
+        date: e.date as string,
+        text: e.text as string,
+        mood: e.mood as Mood,
+        outfit: reviveOutfit(e.outfit),
+        createdAt: typeof e.createdAt === 'number' ? e.createdAt : Date.now(),
+      }
+    })
 }
 
 function reviveWallet(raw: unknown): Wallet | null {
@@ -49,8 +74,10 @@ function reviveInventory(raw: unknown): Inventory | null {
         )
       })
     : []
+  // 카탈로그에서 사라진 옛 옷 id 는 버린다 — 상점에도 옷장에도 없는 이름이 남지 않게.
+  const ownedOutfits = strings(i.ownedOutfits).filter((id) => itemById(id)?.type === 'outfit')
   return {
-    ownedOutfits: Array.from(new Set([...STARTER_OUTFITS, ...strings(i.ownedOutfits)])),
+    ownedOutfits: Array.from(new Set([...STARTER_OUTFITS, ...ownedOutfits])),
     ownedDecor: strings(i.ownedDecor),
     placedDecor: placed,
   }
@@ -117,7 +144,7 @@ export function useGameStore() {
         date,
         text,
         mood: detectMood(text),
-        outfit: existing?.outfit ?? null,
+        outfit: existing?.outfit ?? { ...DEFAULT_OUTFIT },
         createdAt: existing?.createdAt ?? Date.now(),
       }
       setEntries((prev) =>
@@ -130,10 +157,12 @@ export function useGameStore() {
     [entries],
   )
 
-  /** 아무 날짜의 캐릭터에게나 옷을 입히거나 벗긴다 (스펙 2장). */
-  const setOutfit = useCallback((date: string, outfit: string | null) => {
+/** 아무 날짜의 캐릭터에게나 상의·하의를 따로 입히거나 벗긴다 (스펙 2장). */
+  const setOutfit = useCallback((date: string, slot: OutfitSlot, itemId: string | null) => {
     setEntries((prev) =>
-      prev.map((entry) => (entry.date === date ? { ...entry, outfit } : entry)),
+      prev.map((entry) =>
+        entry.date === date ? { ...entry, outfit: { ...entry.outfit, [slot]: itemId } } : entry,
+      ),
     )
   }, [])
 

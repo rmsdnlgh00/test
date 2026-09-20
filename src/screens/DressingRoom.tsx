@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import type { DiaryEntry } from '../types'
-import { CATALOG, outfitById } from '../data/catalog'
+import type { DiaryEntry, OutfitSlot } from '../types'
+import { SLOT_LABEL, outfitInSlot, outfitsOfSlot } from '../data/catalog'
 import { MOOD_META } from '../lib/mood'
 import { formatDay, formatMonth, monthOf } from '../lib/date'
 import { Sheet } from '../components/Sheet'
@@ -11,13 +11,16 @@ interface DressingRoomProps {
   open: boolean
   entries: DiaryEntry[]
   ownedOutfits: string[]
-  onSetOutfit: (date: string, outfit: string | null) => void
+  onSetOutfit: (date: string, slot: OutfitSlot, itemId: string | null) => void
   onClose: () => void
 }
+
+const SLOTS: OutfitSlot[] = ['top', 'bottom']
 
 /**
  * 꾸미기 — 의상 (스펙 2장).
  * 일기 작성 흐름과 완전히 분리되어, 과거 달의 캐릭터에게도 아무 때나 옷을 입힐 수 있다.
+ * 상의와 하의를 따로 고르므로 가진 옷을 섞어 입힐 수 있다.
  */
 export function DressingRoom({
   open,
@@ -40,7 +43,6 @@ export function DressingRoom({
   }, [open, entries])
 
   const selected = entries.find((entry) => entry.date === selectedDate)
-  const owned = CATALOG.filter((item) => item.type === 'outfit' && ownedOutfits.includes(item.id))
 
   if (entries.length === 0) {
     return (
@@ -69,7 +71,8 @@ export function DressingRoom({
             >
               <Character
                 mood={entry.mood}
-                outfit={outfitById(entry.outfit)}
+                top={outfitInSlot(entry.outfit.top, 'top')}
+                bottom={outfitInSlot(entry.outfit.bottom, 'bottom')}
                 className="dress__thumb"
               />
               <span className="dress__date">{formatDay(entry.date)}</span>
@@ -83,7 +86,8 @@ export function DressingRoom({
           <div className="dress__stage">
             <Character
               mood={selected.mood}
-              outfit={outfitById(selected.outfit)}
+              top={outfitInSlot(selected.outfit.top, 'top')}
+              bottom={outfitInSlot(selected.outfit.bottom, 'bottom')}
               className="dress__preview"
             />
             <div className="dress__meta">
@@ -95,29 +99,41 @@ export function DressingRoom({
             </div>
           </div>
 
-          <div className="dress__outfits">
-            <button
-              className={`chip${selected.outfit === null ? ' is-active' : ''}`}
-              type="button"
-              onClick={() => onSetOutfit(selected.date, null)}
-            >
-              벗기
-            </button>
-            {owned.map((item) => (
-              <button
-                key={item.id}
-                className={`chip${selected.outfit === item.id ? ' is-active' : ''}`}
-                type="button"
-                onClick={() => onSetOutfit(selected.date, item.id)}
-              >
-                {item.name}
-              </button>
-            ))}
-          </div>
+          {SLOTS.map((slot) => {
+            const owned = outfitsOfSlot(slot).filter((item) => ownedOutfits.includes(item.id))
+            const worn = selected.outfit[slot]
 
-          {owned.length === 0 && (
-            <p className="screen__empty">가진 옷이 없어요. 상점에서 먼저 사 오세요.</p>
-          )}
+            return (
+              <section key={slot} className="dress__slot">
+                <h3 className="dress__slot-title display">{SLOT_LABEL[slot]}</h3>
+                <div className="dress__outfits">
+                  <button
+                    className={`chip${worn === null ? ' is-active' : ''}`}
+                    type="button"
+                    onClick={() => onSetOutfit(selected.date, slot, null)}
+                  >
+                    벗기
+                  </button>
+                  {owned.map((item) => (
+                    <button
+                      key={item.id}
+                      className={`chip${worn === item.id ? ' is-active' : ''}`}
+                      type="button"
+                      onClick={() => onSetOutfit(selected.date, slot, item.id)}
+                    >
+                      <span className="chip__swatch" style={{ background: item.color }} />
+                      {item.name}
+                    </button>
+                  ))}
+                  {owned.length === 0 && (
+                    <span className="dress__none">
+                      가진 {SLOT_LABEL[slot]}가 없어요. 상점에서 먼저 가져오세요.
+                    </span>
+                  )}
+                </div>
+              </section>
+            )
+          })}
         </>
       )}
     </Sheet>

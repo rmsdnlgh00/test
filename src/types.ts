@@ -13,14 +13,25 @@ export interface Uv {
   v: number
 }
 
+/**
+ * 캐릭터가 입고 있는 한 벌. 상의와 하의를 따로 갈아입힌다.
+ * 비어 있는 칸은 기본 속옷 같은 무채색 옷으로 그린다 — 벗은 몸이 나오지 않게.
+ */
+export interface OutfitSet {
+  top: string | null
+  bottom: string | null
+}
+
+export type OutfitSlot = keyof OutfitSet
+
 /** 하루치 기록. 날짜당 최대 1건이라 date가 곧 식별자다. */
 export interface DiaryEntry {
   /** YYYY-MM-DD */
   date: string
   text: string
   mood: Mood
-  /** 착용 중인 의상 id. 없으면 null */
-  outfit: string | null
+  /** 착용 중인 상·하의 */
+  outfit: OutfitSet
   createdAt: number
 }
 
@@ -61,12 +72,18 @@ interface CatalogItemBase {
   activeSeasons: string[]
 }
 
-/** 캐릭터가 입는 옷. 몸 색과 머리 장식을 바꾼다. */
+/** 상의 모양 — 실루엣이 달라야 갈아입은 티가 난다. */
+export type TopShape = 'tee' | 'hoodie' | 'knit'
+/** 하의 모양 */
+export type BottomShape = 'pants' | 'skirt' | 'shorts'
+
+/** 캐릭터가 입는 옷 한 점. 상의나 하의 중 한 칸을 차지한다. */
 export interface OutfitItem extends CatalogItemBase {
   type: 'outfit'
+  slot: OutfitSlot
+  shape: TopShape | BottomShape
   color: string
   shade: string
-  hat: 'none' | 'leaf' | 'beanie' | 'flower'
 }
 
 export type DecorArt =
@@ -107,7 +124,7 @@ export type AgentActivity = 'walking' | 'idle' | 'sitting' | 'atGate'
 export interface Agent {
   date: string
   mood: Mood
-  outfit: string | null
+  outfit: OutfitSet
   /** 현재 위치 */
   uv: Uv
   /** 이동 목표 */

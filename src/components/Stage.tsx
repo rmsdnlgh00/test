@@ -9,7 +9,7 @@ import {
   SCALE_FRONT,
 } from '../data/scene'
 import { depthScale, pointToUv, uvToPoint } from '../lib/geometry'
-import { decorById, outfitById } from '../data/catalog'
+import { decorById, outfitInSlot } from '../data/catalog'
 import { SceneBackground } from './SceneBackground'
 import { PerspectiveGrid } from './PerspectiveGrid'
 import { DecorSprite } from './DecorSprite'
@@ -191,7 +191,8 @@ function AgentPiece({ agent }: { agent: Agent }) {
     >
       <Character
         mood={agent.mood}
-        outfit={outfitById(agent.outfit)}
+        top={outfitInSlot(agent.outfit.top, 'top')}
+        bottom={outfitInSlot(agent.outfit.bottom, 'bottom')}
         activity={agent.activity}
         facing={agent.facing}
         className="stage__art"

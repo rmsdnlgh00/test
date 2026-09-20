@@ -12,12 +12,12 @@
 
 .char--walking .char__arm--l {
   animation: char-swing-a var(--step, 0.62s) ease-in-out infinite;
-  transform-origin: 20px 54px;
+  transform-origin: 38px 45px;
 }
 
 .char--walking .char__arm--r {
   animation: char-swing-b var(--step, 0.62s) ease-in-out infinite;
-  transform-origin: 80px 54px;
+  transform-origin: 62px 45px;
 }
 
 .char--walking .char__body-group {
@@ -26,7 +26,7 @@
 
 .char--walking .char__shadow {
   animation: char-shadow calc(var(--step, 0.62s) / 2) ease-in-out infinite;
-  transform-origin: 50px 93px;
+  transform-origin: 50px 94px;
 }
 
 /* 다리는 앞뒤로 흔들리듯 x축으로 오가며, 들릴 때 y로 올라간다. */
@@ -98,18 +98,18 @@
   }
 }
 
-/* 벤치에 앉은 포즈 — 몸을 내리고 다리를 앞으로 접는다. */
+/* 벤치에 앉은 포즈 — 상체를 내리고 다리를 앞으로 접는다. */
 .char--sitting .char__body-group {
-  transform: translateY(6px);
+  transform: translateY(7px);
 }
 
 .char--sitting .char__legs {
-  transform: translate(6px, -6px) rotate(-62deg);
-  transform-origin: 50px 80px;
+  transform: translate(4px, -4px) rotate(-64deg);
+  transform-origin: 50px 66px;
 }
 
 .char--sitting .char__feet {
-  transform: translate(12px, -12px);
+  transform: translate(15px, -16px);
 }
 
 .char--sitting .char__shadow {
