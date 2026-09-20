@@ -77,6 +77,68 @@ const ART: Record<DecorArt, ReactElement> = {
       <rect x="74" y="26" width="8" height="28" fill="#a97f52" />
     </g>
   ),
+  stone: (
+    <g stroke={OUTLINE} strokeWidth="2.2" strokeLinejoin="round">
+      <path d="M18 92 Q10 62 34 50 Q62 40 80 58 Q92 74 84 92 Z" fill="#cfc6b6" />
+      <path d="M34 52 Q52 60 58 90" fill="none" stroke="#a89d8b" strokeWidth="2" />
+      <path d="M24 70 Q40 66 48 74" fill="none" stroke="#e2dbcd" strokeWidth="2.4" />
+    </g>
+  ),
+  grasstuft: (
+    <g stroke="#6aa84a" strokeWidth="5" strokeLinecap="round" fill="none">
+      <path d="M50 94 Q42 62 28 44" />
+      <path d="M50 94 Q50 58 46 26" />
+      <path d="M50 94 Q60 62 74 42" />
+      <path d="M50 94 Q38 70 22 66" stroke="#8fc96b" strokeWidth="4" />
+      <path d="M50 94 Q64 72 80 70" stroke="#8fc96b" strokeWidth="4" />
+    </g>
+  ),
+  wildflower: (
+    <g>
+      <g stroke="#6aa84a" strokeWidth="3.4" strokeLinecap="round" fill="none">
+        <path d="M34 94 Q30 66 26 46" />
+        <path d="M52 94 Q52 62 54 34" />
+        <path d="M70 94 Q74 68 76 52" />
+      </g>
+      <g stroke={OUTLINE} strokeWidth="1.6">
+        <circle cx="26" cy="42" r="9" fill="#ffd9e8" />
+        <circle cx="54" cy="30" r="10" fill="#fff3c4" />
+        <circle cx="76" cy="48" r="8" fill="#d9d2f2" />
+      </g>
+      <g fill="#f0a468" stroke="none">
+        <circle cx="26" cy="42" r="3" />
+        <circle cx="54" cy="30" r="3.4" />
+        <circle cx="76" cy="48" r="2.6" />
+      </g>
+    </g>
+  ),
+  stump: (
+    <g stroke={OUTLINE} strokeWidth="2.2" strokeLinejoin="round">
+      <path d="M28 92 L32 50 L68 50 L72 92 Z" fill="#a97f52" />
+      <ellipse cx="50" cy="50" rx="20" ry="8" fill="#c79c6e" />
+      <ellipse cx="50" cy="50" rx="12" ry="4.6" fill="none" stroke="#a97f52" strokeWidth="1.8" />
+      <ellipse cx="50" cy="50" rx="5" ry="2" fill="none" stroke="#a97f52" strokeWidth="1.6" />
+      <path d="M30 70 Q22 64 18 72 Q24 78 32 76" fill="#8fc96b" />
+    </g>
+  ),
+  wateringcan: (
+    <g stroke={OUTLINE} strokeWidth="2.2" strokeLinejoin="round">
+      <path d="M30 92 L26 52 L70 52 L66 92 Z" fill="#9fd3c7" />
+      <rect x="22" y="44" width="52" height="9" rx="4" fill="#b6e0d6" />
+      <path d="M70 58 L88 38 L94 44 L78 64 Z" fill="#b6e0d6" />
+      <path d="M38 44 Q50 22 62 44" fill="none" stroke="#7fb9ac" strokeWidth="5" />
+    </g>
+  ),
+  signpost: (
+    <g stroke={OUTLINE} strokeWidth="2.2" strokeLinejoin="round">
+      <rect x="45" y="36" width="10" height="58" fill="#a97f52" />
+      <path d="M16 30 L74 30 L86 44 L74 58 L16 58 Z" fill="#e8d6ae" />
+      <g stroke="#b99a6a" strokeWidth="2.4" strokeLinecap="round">
+        <path d="M26 40 L62 40" />
+        <path d="M26 48 L52 48" />
+      </g>
+    </g>
+  ),
   flowerpot: (
     <g stroke={OUTLINE} strokeWidth="2.2" strokeLinejoin="round">
       <path d="M32 58 L38 94 L62 94 L68 58 Z" fill="#d98b63" />

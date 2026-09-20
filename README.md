@@ -14,8 +14,8 @@ npm run build    # 타입체크 + 프로덕션 빌드 (dist/)
 npm run preview  # 빌드 결과 미리보기
 ```
 
-좌표를 맞출 때는 `http://localhost:5173/?debug=1` 로 열면 지면 사각형·격자·걷는 영역·
-핫스팟이 화면에 그려집니다.
+`http://localhost:5173/?debug=1` 로 열면 지면 사각형·격자·걷는 영역·핫스팟이 화면에 그려집니다.
+배경을 좌표계에서 직접 그리므로 보정할 일은 없지만, 지형을 고칠 때 확인용으로 씁니다.
 
 ## 설계의 중심 — 하나의 지면 좌표계
 
@@ -32,16 +32,28 @@ npm run preview  # 빌드 결과 미리보기
 잔디 위치와 어긋납니다. 그래서 이미지와 같은 비율의 프레임(`.stage__frame`)을 먼저
 cover 크기로 깔고 모든 % 좌표를 그 프레임 기준으로 잡습니다.
 
-## 배경 이미지 갈아끼우기
+## 배경은 SVG로 직접 그린다
 
-1. 이미지를 `public/` 에 넣습니다.
-2. 월별 배경이면 `src/data/scene.ts` 의 `MONTH_BACKGROUNDS` 에 `'YYYY-MM': '/파일명'` 으로 등록합니다.
-   등록되지 않은 달은 기본 배경에 `SEASON_TINTS` 의 계절 보정만 CSS로 얹습니다.
-3. 비율이 다르면 `src/components/Stage.css` 의 `--stage-ratio` 를 맞춥니다.
-4. `?debug=1` 로 열어 `GROUND_QUAD`·`WALK_BOUNDS`·`OBSTACLES`·`HOTSPOTS` 를 눈으로 맞춥니다.
+배경은 이미지 파일이 아니라 `src/components/SceneArt.tsx` 가 그리는 벡터 디오라마입니다.
+이미지를 쓰지 않는 이유가 셋 있습니다.
 
-그레인·라이팅 질감은 이미지가 아니라 `SceneBackground.css` 에서 CSS로 얹으므로,
-배경이 몇 장으로 늘어나도 질감은 동일하게 유지됩니다.
+- 잔디·연못·화단·울타리를 좌표계(`GROUND_QUAD`, `POND`, `FLOWER_BED`)에서 바로 그리므로
+  **그림과 판정 영역이 구조적으로 어긋날 수 없습니다.** 좌표를 눈대중으로 맞출 일이 없습니다.
+- 계절 전환이 색 보정 필터가 아니라 **실제 잎 색과 물든 비율**로 표현됩니다.
+  `src/data/season.ts` 에서 9월은 `accentRatio: 0.22`(초록 우세, 잎끝만 물듦),
+  10월은 `0.8`(완연한 가을)로 스펙 3장의 무드 차이를 직접 다룹니다.
+- 어떤 화면 크기에서도 또렷하고, 배경 전체가 수십 KB입니다.
+
+고칠 때는:
+
+- **지형을 바꾸려면** `src/data/scene.ts` 의 `GROUND_QUAD`·`WALK_BOUNDS`·`POND`·
+  `FLOWER_BED`·`HOTSPOTS` 를 고칩니다. 배경 그림이 따라옵니다.
+- **색을 바꾸려면** `src/data/season.ts` 의 월별 팔레트를 고칩니다.
+- **그림 요소를 더하려면** `SceneArt.tsx` 에서 `at({ u, v })` 로 좌표를 잡습니다.
+  그러면 원근이 자동으로 맞습니다.
+
+그레인·라이팅 질감은 그림에 굽지 않고 `SceneBackground.css` 에서 CSS로 얹으므로,
+계절 팔레트가 어떻게 바뀌어도 질감은 동일하게 유지됩니다.
 
 ## 구조
 
@@ -51,7 +63,8 @@ src/
 ├── App.tsx / App.css             홈 화면 조립, 월 아카이브 네비게이션, 화면 전환
 ├── types.ts                      전역 타입
 ├── data/
-│   ├── scene.ts                  지면 좌표계·걷는 영역·핫스팟·월별 배경  ← 좌표의 유일한 원천
+│   ├── scene.ts                  지면 좌표계·걷는 영역·연못·화단·핫스팟  ← 좌표의 유일한 원천
+│   ├── season.ts                 월별 계절 팔레트 (잎 색과 물든 비율)
 │   └── catalog.ts                상점 카탈로그 (의상·소품), 재화 이름
 ├── lib/
 │   ├── geometry.ts               겹선형 보간과 역변환, 영역 판정·밀어내기
@@ -65,7 +78,8 @@ src/
 │   └── useDecorDrag.ts           꾸미기 모드 드래그 배치와 위치 보정
 ├── components/
 │   ├── Stage.tsx / .css          배경·소품·캐릭터를 깊이순으로 세우는 무대
-│   ├── SceneBackground.tsx/.css  배경 이미지 + 계절 보정 + CSS 그레인·라이팅
+│   ├── SceneArt.tsx              배경 디오라마 SVG — 좌표계에서 직접 작도
+│   ├── SceneBackground.tsx/.css  배경 조립 + CSS 그레인·라이팅 질감
 │   ├── PerspectiveGrid.tsx       원근 격자 (배치 판정과 같은 데이터로 계산)
 │   ├── Character.tsx / .css      캐릭터 SVG — 감정은 표정에만, 색은 의상이 결정
 │   ├── DecorSprite.tsx           소품 아트

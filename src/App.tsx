@@ -37,8 +37,12 @@ export function App() {
     [store.entries, viewMonth],
   )
 
-  // 꾸미기 중에는 캐릭터 애니메이션을 멈춘다 (스펙 8장).
-  const agents = useWanderers(monthEntries, !decorating)
+  /*
+   * 꾸미기 중에는 캐릭터 애니메이션을 멈춘다 (스펙 8장).
+   * 시트가 덮여 있을 때도 멈춘다 — 보이지도 않는 애니메이션 때문에 App 이 매 프레임
+   * 다시 그려지면 배터리만 먹고, 시트 안의 입력 상태에도 방해가 된다.
+   */
+  const agents = useWanderers(monthEntries, !decorating && screen === 'none')
   const drag = useDecorDrag(frameRef, store)
 
   /** 넘겨볼 수 있는 가장 이른 달 — 첫 기록이 있는 달. */

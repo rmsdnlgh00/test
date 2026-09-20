@@ -11,7 +11,7 @@
  * 잔디 좌표와 캐릭터 위치가 어긋나지 않는다.
  */
 .stage__frame {
-  --stage-ratio: 1.7917; /* 1376 / 768 */
+  --stage-ratio: 1.77778; /* 16 : 9 — SceneArt 의 viewBox 와 같은 비율 */
 
   position: absolute;
   top: 50%;

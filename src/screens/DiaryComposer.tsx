@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { DiaryEntry } from '../types'
 import { MOOD_META } from '../lib/mood'
 import { formatFullDate } from '../lib/date'
@@ -21,20 +21,36 @@ const MAX_LENGTH = 600
  */
 export function DiaryComposer({ open, date, entry, onSubmit, onClose }: DiaryComposerProps) {
   const [text, setText] = useState('')
+  const inputRef = useRef<HTMLTextAreaElement>(null)
 
-  // 열릴 때마다 그날의 본문을 다시 채운다.
+  // 최신 기록은 ref 로만 읽어, 아래 이펙트가 입력 중에 다시 돌지 않게 한다.
+  const entryRef = useRef(entry)
+  entryRef.current = entry
+
+  /*
+   * 열리는 순간에만 그날의 본문을 채우고 커서를 넣는다.
+   * entry 를 의존성에 두면 저장 직후 본문이 다시 덮어써지므로 open 만 본다.
+   */
   useEffect(() => {
-    if (open) setText(entry?.text ?? '')
-  }, [open, entry])
+    if (!open) return
+    setText(entryRef.current?.text ?? '')
+    inputRef.current?.focus()
+  }, [open])
 
   const trimmed = text.trim()
   const canSave = trimmed.length > 0
 
   return (
-    <Sheet open={open} title={entry ? '오늘의 기록 고치기' : '오늘의 기록'} onClose={onClose}>
+    <Sheet
+      open={open}
+      title={entry ? '오늘의 기록 고치기' : '오늘의 기록'}
+      onClose={onClose}
+      autoFocus={false}
+    >
       <p className="screen__caption">{formatFullDate(date)}</p>
 
       <textarea
+        ref={inputRef}
         className="composer__input"
         value={text}
         maxLength={MAX_LENGTH}

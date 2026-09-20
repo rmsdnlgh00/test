@@ -9,21 +9,35 @@ interface SheetProps {
   children: ReactNode
   /** 헤더 오른쪽에 붙는 보조 영역 (잔액 표시 등) */
   aside?: ReactNode
+  /** 열릴 때 패널로 포커스를 옮길지. 안에서 직접 포커스를 잡는 화면은 끈다. */
+  autoFocus?: boolean
 }
 
 /** 화면 아래에서 올라오는 공용 패널. 일기·상점·꾸미기가 모두 이걸 쓴다. */
-export function Sheet({ open, title, onClose, children, aside }: SheetProps) {
+export function Sheet({ open, title, onClose, children, aside, autoFocus = true }: SheetProps) {
   const panelRef = useRef<HTMLDivElement>(null)
+
+  /*
+   * onClose 는 호출부에서 매 렌더 새로 만들어지는 경우가 많다. 그대로 의존성에 넣으면
+   * 홈 화면의 애니메이션 리렌더마다 이 이펙트가 다시 돌아 입력 중인 요소에서
+   * 포커스를 빼앗는다. 그래서 최신 콜백은 ref로만 들고 리스너는 한 번만 붙인다.
+   */
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
 
   useEffect(() => {
     if (!open) return
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') onCloseRef.current()
     }
     window.addEventListener('keydown', onKeyDown)
-    panelRef.current?.focus()
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [open, onClose])
+  }, [open])
+
+  // 포커스 이동은 '열리는 순간' 한 번뿐이어야 한다.
+  useEffect(() => {
+    if (open && autoFocus) panelRef.current?.focus()
+  }, [open, autoFocus])
 
   if (!open) return null
 

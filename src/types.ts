@@ -69,7 +69,20 @@ export interface OutfitItem extends CatalogItemBase {
   hat: 'none' | 'leaf' | 'beanie' | 'flower'
 }
 
-export type DecorArt = 'tree' | 'bush' | 'pumpkin' | 'lantern' | 'mushroom' | 'bench' | 'flowerpot'
+export type DecorArt =
+  | 'tree'
+  | 'bush'
+  | 'pumpkin'
+  | 'lantern'
+  | 'mushroom'
+  | 'bench'
+  | 'flowerpot'
+  | 'stone'
+  | 'grasstuft'
+  | 'wildflower'
+  | 'stump'
+  | 'wateringcan'
+  | 'signpost'
 
 /** 공간에 놓는 소품. */
 export interface DecorItem extends CatalogItemBase {

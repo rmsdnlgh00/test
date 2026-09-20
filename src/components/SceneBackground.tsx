@@ -1,33 +1,18 @@
-import { backgroundFor, seasonTintFor } from '../data/scene'
+import { paletteFor } from '../data/season'
+import { SceneArt } from './SceneArt'
 import './SceneBackground.css'
 
 /**
  * 배경 레이어 (스펙 4장).
  *
- * 이미지는 한 장만 깔고, 포근한 질감 — 은은한 라이팅과 그레인 — 은
- * 이미지가 아니라 CSS로 덮는다. 그래야 월별 배경이 몇 장으로 늘어나도
- * 질감이 똑같이 유지된다.
+ * 그림 자체는 SceneArt 가 벡터로 그리고, 포근한 질감 — 은은한 라이팅과 그레인 —
+ * 은 그 위에 CSS로 덮는다. 질감을 그림에 굽지 않고 코드로 얹기 때문에
+ * 계절 팔레트가 어떻게 바뀌어도 같은 질감이 일관되게 유지된다.
  */
 export function SceneBackground({ month }: { month: string }) {
-  const src = backgroundFor(month)
-  const tint = seasonTintFor(month)
-
   return (
     <div className="bg" aria-hidden="true">
-      {/* 이미지 로딩 전/실패 시에도 흰 화면이 보이지 않도록 하늘색을 깔아 둔다 */}
-      <div className="bg__fallback" />
-
-      <img
-        className="bg__image"
-        src={src}
-        alt=""
-        decoding="async"
-        fetchPriority="high"
-        style={tint ? { filter: tint.filter } : undefined}
-      />
-
-      {/* 전용 배경이 없는 달의 계절 보정 */}
-      {tint && <div className="bg__season" style={{ background: tint.color }} />}
+      <SceneArt palette={paletteFor(month)} />
 
       {/* 가운데로 빛이 모이는 비네팅 */}
       <div className="bg__light" />
