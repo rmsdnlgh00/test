@@ -17,6 +17,30 @@
   );
 }
 
+/* 힉스필드 등에서 만든 배경 이미지 한 장 */
+.scene__photo {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* 화면 비율이 어떻게 바뀌어도 늘어나지 않고 잘리기만 한다 */
+  object-fit: cover;
+  object-position: center;
+}
+
+/*
+ * 이미지 위에 깔리는 막. 위쪽은 밝게 띄워 제목이 읽히게 하고,
+ * 아래쪽은 살짝 눌러 일기 카드가 떠 보이게 한다. 이미지가 밝거나 어두우면 세기를 조절한다.
+ */
+.scene__scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 20%),
+    linear-gradient(0deg, rgba(58, 46, 34, 0.22) 0%, rgba(58, 46, 34, 0) 30%);
+}
+
 .scene__sun {
   position: absolute;
   top: 6%;
