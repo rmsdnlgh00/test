@@ -55,16 +55,19 @@ const lawnBand = (v0: number, v1: number) =>
 /**
  * 잔디판 바깥의 공원 땅.
  *
- * 울타리 높이(잔디판 뒤쪽 가장자리 y≈336) 바로 아래에서 시작해 화면 아래 끝까지,
- * 좌우로도 화면 끝까지 가득 찬다. 윗선을 살짝 물결치게 두면 자로 그은 띠처럼
- * 보이지 않고, 뒤쪽에 늘어선 나무들이 이 땅에 심긴 것으로 읽힌다.
+ * 울타리 밑동(y≈345)보다 조금 위에서 시작해 화면 아래 끝까지, 좌우로도 화면
+ * 끝까지 가득 찬다. 윗선을 살짝 물결치게 두면 자로 그은 띠처럼 보이지 않고,
+ * 울타리 말뚝과 뒤쪽 나무들이 이 땅에 박힌 것으로 읽힌다.
+ *
+ * 이 선이 밑동보다 아래로 내려가면 잔디판 밖의 양옆 울타리가 공중에 뜬다 —
+ * 잔디판이 사다리꼴이라 거기엔 받쳐 줄 잔디가 없기 때문이다.
  */
 const MEADOW =
-  `M0 ${SVG_HEIGHT} L0 364 Q400 348 800 360 Q1200 372 1600 350 L1600 ${SVG_HEIGHT} Z`
+  `M0 ${SVG_HEIGHT} L0 340 Q400 332 800 338 Q1200 342 1600 334 L1600 ${SVG_HEIGHT} Z`
 
 /** 그 땅의 먼 가장자리에 지는 그늘. 언덕과 맞닿는 선을 눌러 준다. */
 const MEADOW_EDGE_SHADE =
-  `M0 364 Q400 348 800 360 Q1200 372 1600 350 L1600 412 Q1200 434 800 422 Q400 410 0 426 Z`
+  `M0 340 Q400 332 800 338 Q1200 342 1600 334 L1600 392 Q1200 404 800 400 Q400 394 0 402 Z`
 
 /** 잎 한 장. 끝이 뾰족한 렌즈 모양이라야 동그란 점으로 보이지 않는다. */
 const leafPath = (cx: number, cy: number, r: number) =>
@@ -185,7 +188,17 @@ export function SceneArt({ palette }: { palette: ScenePalette }) {
         />
       ))}
 
-      {/* 가장 먼 나무선. 실루엣만 보이고 곧 안개에 잠긴다 */}
+      {/* 먼 언덕 */}
+      <path
+        d="M0 330 C 220 244 380 250 560 300 C 740 350 900 246 1120 282 C 1300 312 1460 268 1600 300 L1600 470 L0 470 Z"
+        fill={palette.hillFar}
+      />
+      <path
+        d="M0 376 C 240 320 420 340 620 376 C 820 412 980 334 1220 362 C 1400 382 1500 366 1600 378 L1600 500 L0 500 Z"
+        fill={palette.hillNear}
+      />
+
+      {/* 가장 먼 나무선. 언덕 위에 서서 실루엣만 보이고 곧 안개에 잠긴다 */}
       {backdrop.farTrees.map((tree, i) => (
         <g key={`far-${i}`} opacity="0.6">
           <rect
@@ -215,16 +228,6 @@ export function SceneArt({ palette }: { palette: ScenePalette }) {
           />
         </g>
       ))}
-
-      {/* 먼 언덕 */}
-      <path
-        d="M0 330 C 220 244 380 250 560 300 C 740 350 900 246 1120 282 C 1300 312 1460 268 1600 300 L1600 470 L0 470 Z"
-        fill={palette.hillFar}
-      />
-      <path
-        d="M0 376 C 240 320 420 340 620 376 C 820 412 980 334 1220 362 C 1400 382 1500 366 1600 378 L1600 500 L0 500 Z"
-        fill={palette.hillNear}
-      />
 
       {/* 언덕 위로 안개를 덮어 앞뒤 거리를 벌린다 */}
       <rect x="0" y="150" width={SVG_WIDTH} height="256" fill="url(#art-haze)" />
@@ -617,15 +620,15 @@ function Fence({ palette, groundY }: { palette: ScenePalette; groundY: number })
   const FENCE_V = 0.02
   const GAP_FROM = 0.43
   const GAP_TO = 0.57
-  const STEPS = 34
+  const STEPS = 40
 
   /*
    * 울타리는 잔디판 폭에서 끝나지 않고 화면 좌우 끝까지 이어진다.
    * u 를 0~1 밖으로 넘기면 uvToPoint 가 잔디판 뒤쪽 모서리의 기울기를 그대로
    * 늘려 주므로, 눈대중 없이 같은 선 위에 말뚝이 계속 박힌다.
    */
-  const U_FROM = -0.36
-  const U_TO = 1.36
+  const U_FROM = -0.2
+  const U_TO = 1.2
   const uAt = (t: number) => U_FROM + (U_TO - U_FROM) * t
 
   const posts = Array.from({ length: STEPS + 1 }, (_, i) => uAt(i / STEPS))
@@ -738,7 +741,7 @@ function buildBackdrop() {
 
   const farTrees = Array.from({ length: 22 }, (_, i) => ({
     x: -20 + (i / 21) * 1640 + (random() - 0.5) * 60,
-    y: 326 + random() * 24,
+    y: 300 + random() * 22,
     size: 74 + random() * 52,
     tone: Math.floor(random() * 3) as 0 | 1 | 2,
   }))
