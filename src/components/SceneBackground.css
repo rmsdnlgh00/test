@@ -11,39 +11,3 @@
   width: 100%;
   height: 100%;
 }
-
-.bg__light,
-.bg__grain {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-/* 가장자리를 살짝 눌러 가운데 디오라마로 시선이 모이게 한다 */
-.bg__light {
-  background:
-    radial-gradient(
-      ellipse 68% 58% at 50% 44%,
-      rgba(255, 249, 226, 0.26) 0%,
-      rgba(255, 249, 226, 0) 62%
-    ),
-    radial-gradient(ellipse 108% 88% at 50% 50%, rgba(74, 58, 40, 0) 54%, rgba(74, 58, 40, 0.26) 100%);
-}
-
-/*
- * 종이 그레인. feTurbulence 를 데이터 URI로 깔고 soft-light 로 얹는다.
- * 이미지로 굽지 않으므로 계절이 바뀌어도 질감은 그대로다.
- */
-.bg__grain {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='160' height='160' filter='url(%23n)' opacity='0.5'/></svg>");
-  background-size: 160px 160px;
-  mix-blend-mode: soft-light;
-  opacity: 0.3;
-}
-
-@media (prefers-reduced-transparency: reduce) {
-  .bg__grain {
-    display: none;
-  }
-}
-

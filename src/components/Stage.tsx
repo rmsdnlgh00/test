@@ -87,11 +87,11 @@ export const Stage = forwardRef<HTMLDivElement, StageProps>(function Stage(
    * 세로로 긴 화면에서는 장면 전체를 보여 주려고 프레임 폭을 화면에 맞추는데,
    * 그러면 16:9 프레임이 화면 가운데 띠만 차지하고 위아래가 빈다. 그 위아래를
    * 그림의 맨 윗줄(하늘)·맨 아랫줄(들판)과 같은 색으로 채워 한 장면처럼 잇는다.
-   * SceneArt 가 들판을 SHADE 13% 로 눌러 그리므로 여기서도 같은 값을 쓴다.
+   * SceneArt 가 들판을 SHADE 7% 로 눌러 그리므로 여기서도 같은 값을 쓴다.
    */
   const sceneVars = useMemo(() => {
     const palette = paletteFor(month)
-    const ground = mixHex(palette.grassBottom, '#4a3418', 0.13)
+    const ground = mixHex(palette.grassBottom, '#4a3418', 0.07)
     return {
       '--scene-sky': palette.skyTop,
       '--scene-sky-high': mixHex(palette.skyTop, '#1d4d70', 0.16),
@@ -149,8 +149,10 @@ export const Stage = forwardRef<HTMLDivElement, StageProps>(function Stage(
         {debug && <DebugOverlay agents={agents} />}
       </div>
 
-      {/* 잎은 프레임이 아니라 화면 전체에 내린다 */}
+      {/* 잎과 질감은 프레임이 아니라 화면 전체에 덮는다 */}
       {palette.fallenLeaves && <FallingLeaves palette={palette} />}
+      <div className="stage__light" aria-hidden="true" />
+      <div className="stage__grain" aria-hidden="true" />
     </div>
   )
 })
