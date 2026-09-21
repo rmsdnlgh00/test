@@ -160,7 +160,16 @@ export const SCALE_BACK = 0.62
 export const SCALE_FRONT = 1.2
 
 /** 캐릭터 기본 크기 (무대 높이 대비 %). */
-export const CHARACTER_HEIGHT = 12
+export const CHARACTER_HEIGHT = 9
+
+/**
+ * 카메라 월드가 뷰포트보다 가로세로 각각 얼마나 큰가 (1단계: 완만한 확장).
+ *
+ * GROUND_QUAD 등 모든 좌표가 프레임 대비 %(uv)라, 프레임 자체를 이 배율만큼
+ * 키우기만 해도 상대 배치는 그대로인 채 절대 면적만 넓어진다 — 좌표를 하나도
+ * 옮기지 않아도 된다. Stage.css 의 --world-scale 과 같은 값을 쓴다.
+ */
+export const WORLD_SCALE = 1.6
 
 /** 초당 이동 속도 (uv 단위). */
 export const WALK_SPEED = 0.11

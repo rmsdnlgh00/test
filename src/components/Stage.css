@@ -16,6 +16,8 @@
   --frame-w: 100vw;
   --frame-h: calc(100vw / var(--stage-ratio));
   --stage-lift: 0px;
+  /* data/scene.ts 의 WORLD_SCALE 과 같은 값 — 월드가 뷰포트보다 이만큼 크다. */
+  --world-scale: 1.6;
 
   /* 프레임 위쪽 하늘 — 그림의 맨 윗줄 색에서 이어 올라간다 */
   background: linear-gradient(
@@ -45,14 +47,43 @@
   );
 }
 
-.stage__frame {
+/*
+ * 뷰포트 — 화면에 실제로 보이는 창. 세로로 긴 화면에서의 레터박스 로직은
+ * 그대로 여기가 담당한다. 월드가 이보다 크므로 넘치는 부분은 잘라 낸다.
+ */
+.stage__viewport {
   position: absolute;
   top: 50%;
   left: 50%;
   width: var(--frame-w);
   height: var(--frame-h);
+  overflow: hidden;
+  /* 우리가 직접 드래그/핀치를 처리하므로 브라우저 기본 스크롤·확대와 겹치지 않게 한다 */
+  touch-action: none;
+  cursor: grab;
   transform: translate(-50%, calc(-50% - var(--stage-lift)));
   transition: transform 260ms ease;
+}
+
+.stage__viewport:active {
+  cursor: grabbing;
+}
+
+/*
+ * 월드 — 뷰포트보다 --world-scale 배 큰 실제 마당. 좌표(퍼센트)는 전부 이
+ * 엘리먼트 기준이라, 카메라가 이동/확대돼도 좌표 계산은 그대로다
+ * (getBoundingClientRect 가 transform 이 반영된 실제 사각형을 돌려주기 때문).
+ * transform 은 useCamera 가 매 프레임 인라인 스타일로 넣으므로 여기서는
+ * transition 을 걸지 않는다 — 걸면 손끝을 따라가지 못하고 밀린다.
+ */
+.stage__world {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(var(--frame-w) * var(--world-scale));
+  height: calc(var(--frame-h) * var(--world-scale));
+  transform-origin: 0 0;
+  will-change: transform;
 }
 
 /*
@@ -191,7 +222,7 @@
     animation: none;
   }
 
-  .stage__frame {
+  .stage__viewport {
     transition: none;
   }
 }

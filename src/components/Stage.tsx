@@ -1,4 +1,4 @@
-import { forwardRef, useMemo } from 'react'
+import { forwardRef, useMemo, useRef } from 'react'
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react'
 import type { Agent, PlacedDecor } from '../types'
 import {
@@ -12,6 +12,7 @@ import { depthScale, pointToUv, uvToPoint } from '../lib/geometry'
 import { decorById, outfitInSlot } from '../data/catalog'
 import { paletteFor } from '../data/season'
 import { mixHex } from '../lib/color'
+import { useCamera } from '../hooks/useCamera'
 import { SceneBackground } from './SceneBackground'
 import { FallingLeaves } from './FallingLeaves'
 import { PerspectiveGrid } from './PerspectiveGrid'
@@ -64,6 +65,9 @@ export const Stage = forwardRef<HTMLDivElement, StageProps>(function Stage(
   },
   frameRef,
 ) {
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const camera = useCamera(viewportRef)
+
   /** 깊이(화면상 아래쪽일수록 앞) 순으로 정렬 — 스펙 8장의 z-index 규칙. */
   const sprites = useMemo<Sprite[]>(() => {
     const decorSprites: Sprite[] = placed.map((d) => ({
@@ -114,39 +118,41 @@ export const Stage = forwardRef<HTMLDivElement, StageProps>(function Stage(
 
   return (
     <div className={decorating ? 'stage is-decorating' : 'stage'} style={sceneVars}>
-      <div className="stage__frame" ref={frameRef}>
-        <SceneBackground month={month} />
+      <div className="stage__viewport" ref={viewportRef} onPointerDown={camera.onPointerDown}>
+        <div className="stage__world" ref={frameRef} style={camera.style}>
+          <SceneBackground month={month} />
 
-        {decorating && <PerspectiveGrid />}
+          {decorating && <PerspectiveGrid />}
 
-        {/* 문 앞에 캐릭터가 서면 문이 열린 표시가 켜진다 */}
-        {openGates.map((spot) => {
-          const p = uvToPoint(GROUND_QUAD, spot.uv)
-          return (
-            <span
-              key={spot.id}
-              className="stage__gate-open"
-              style={{ left: `${p.x}%`, top: `${p.y}%` }}
-              aria-hidden="true"
-            />
-          )
-        })}
+          {/* 문 앞에 캐릭터가 서면 문이 열린 표시가 켜진다 */}
+          {openGates.map((spot) => {
+            const p = uvToPoint(GROUND_QUAD, spot.uv)
+            return (
+              <span
+                key={spot.id}
+                className="stage__gate-open"
+                style={{ left: `${p.x}%`, top: `${p.y}%` }}
+                aria-hidden="true"
+              />
+            )
+          })}
 
-        {sprites.map((sprite) =>
-          sprite.kind === 'decor' ? (
-            <DecorPiece
-              key={sprite.key}
-              decor={sprite.decor}
-              dragging={draggingUid === sprite.key}
-              selected={selectedUid === sprite.key}
-              onPointerDown={onDecorPointerDown}
-            />
-          ) : (
-            <AgentPiece key={sprite.key} agent={sprite.agent} />
-          ),
-        )}
+          {sprites.map((sprite) =>
+            sprite.kind === 'decor' ? (
+              <DecorPiece
+                key={sprite.key}
+                decor={sprite.decor}
+                dragging={draggingUid === sprite.key}
+                selected={selectedUid === sprite.key}
+                onPointerDown={onDecorPointerDown}
+              />
+            ) : (
+              <AgentPiece key={sprite.key} agent={sprite.agent} />
+            ),
+          )}
 
-        {debug && <DebugOverlay agents={agents} />}
+          {debug && <DebugOverlay agents={agents} />}
+        </div>
       </div>
 
       {/* 잎과 질감은 프레임이 아니라 화면 전체에 덮는다 */}
