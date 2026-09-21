@@ -10,6 +10,8 @@ interface CharacterProps {
   activity?: AgentActivity
   /** 1이면 오른쪽을 본다 */
   facing?: 1 | -1
+  /** 화면 안쪽으로 걸어가는 중 — 뒷모습을 그린다 */
+  back?: boolean
   /** 픽셀 크기. 생략하면 부모 크기에 맞춘다. */
   size?: number
   className?: string
@@ -41,6 +43,7 @@ export function Character({
   bottom,
   activity = 'idle',
   facing = 1,
+  back = false,
   size,
   className,
 }: CharacterProps) {
@@ -60,6 +63,8 @@ export function Character({
     'char',
     activity === 'walking' ? 'char--walking' : '',
     sitting ? 'char--sitting' : '',
+    // 서 있을 때도 숨 쉬듯 조금씩 움직여야 인형처럼 굳어 보이지 않는다.
+    activity === 'idle' || activity === 'atGate' ? 'char--breathing' : '',
     className,
   ]
     .filter(Boolean)
@@ -78,28 +83,28 @@ export function Character({
       <ellipse className="char__shadow" cx="50" cy="94" rx="19" ry="3.8" fill="rgba(60,80,40,0.22)" />
 
       {!sitting && (
-        <>
-          {/* 다리 — 맨다리 위에 바짓단을 겹쳐 입힌다. 걷기 애니메이션이 이 묶음을 흔든다. */}
-          <g className="char__legs">
-            <g className="char__leg char__leg--l">
-              <rect x="41" y="64" width="7.5" height="26" rx="3.7" fill={SKIN} />
-              {legWear > 0 && (
-                <rect x="40.4" y="64" width="8.7" height={legWear} rx="3.4" fill={bottomColor} />
-              )}
-            </g>
-            <g className="char__leg char__leg--r">
-              <rect x="51.5" y="64" width="7.5" height="26" rx="3.7" fill={SKIN} />
-              {legWear > 0 && (
-                <rect x="50.9" y="64" width="8.7" height={legWear} rx="3.4" fill={bottomColor} />
-              )}
-            </g>
+        /*
+         * 다리 — 맨다리 위에 바짓단을 겹쳐 입힌다.
+         *
+         * 신발은 다리 묶음 '안'에 있어야 한다. 예전처럼 따로 두면 다리를 고관절
+         * 기준으로 돌릴 때 발만 제자리에 남아 다리가 발에서 빠진다.
+         */
+        <g className="char__legs">
+          <g className="char__leg char__leg--l">
+            <rect x="41" y="64" width="7.5" height="26" rx="3.7" fill={SKIN} />
+            {legWear > 0 && (
+              <rect x="40.4" y="64" width="8.7" height={legWear} rx="3.4" fill={bottomColor} />
+            )}
+            <ellipse cx="44.5" cy="90.5" rx="6.6" ry="3.4" fill={SHOE} />
           </g>
-
-          <g className="char__feet" fill={SHOE}>
-            <ellipse className="char__foot char__foot--l" cx="44.5" cy="90.5" rx="6.6" ry="3.4" />
-            <ellipse className="char__foot char__foot--r" cx="55.5" cy="90.5" rx="6.6" ry="3.4" />
+          <g className="char__leg char__leg--r">
+            <rect x="51.5" y="64" width="7.5" height="26" rx="3.7" fill={SKIN} />
+            {legWear > 0 && (
+              <rect x="50.9" y="64" width="8.7" height={legWear} rx="3.4" fill={bottomColor} />
+            )}
+            <ellipse cx="55.5" cy="90.5" rx="6.6" ry="3.4" fill={SHOE} />
           </g>
-        </>
+        </g>
       )}
 
       <g className="char__body-group">
@@ -127,8 +132,14 @@ export function Character({
         {/* 목 */}
         <rect x="46" y="34" width="8" height="8" rx="3" fill={SKIN_SHADE} />
 
-        <Head />
-        <Face mood={mood} />
+        {back ? (
+          <HeadBack />
+        ) : (
+          <>
+            <Head />
+            <Face mood={mood} />
+          </>
+        )}
       </g>
     </svg>
   )
@@ -190,6 +201,25 @@ function Head() {
         fill={HAIR}
       />
       <path d="M44 11 Q52 10 58 14" stroke={HAIR_LIGHT} strokeWidth="2" fill="none" strokeLinecap="round" />
+    </g>
+  )
+}
+
+/**
+ * 뒤통수.
+ *
+ * 멀어지는 방향으로 걸어갈 때 쓴다. 예전에는 방향이 좌우 반전뿐이라, 화면
+ * 안쪽으로 걸어가면서도 정면을 빤히 보고 있어서 뒷걸음질 치는 것처럼 보였다.
+ * 얼굴이 없는 대신 뒷머리 결과 목덜미만 보여 준다.
+ */
+function HeadBack() {
+  return (
+    <g>
+      <ellipse cx="50" cy="23" rx="16.5" ry="16" fill={HAIR} />
+      {/* 정수리에 도는 윤기 — 이게 없으면 머리통이 납작한 원으로 보인다 */}
+      <ellipse cx="50" cy="15.5" rx="9" ry="5" fill={HAIR_LIGHT} opacity="0.55" />
+      {/* 목덜미로 내려오는 머리끝 */}
+      <path d="M36.5 30 Q50 38 63.5 30 Q60 36 50 36.5 Q40 36 36.5 30 Z" fill={HAIR_LIGHT} opacity="0.4" />
     </g>
   )
 }

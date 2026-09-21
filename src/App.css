@@ -133,6 +133,28 @@
   font-size: 13px;
 }
 
+/*
+ * 서랍에서 끌고 나온 소품의 미리보기.
+ *
+ * 밑동이 손끝에 오도록 끌어내린다 — 소품은 바닥에 닿는 점이 기준이라,
+ * 가운데를 손끝에 맞추면 놓는 순간 아래로 훌쩍 내려앉는다.
+ * 손끝 아래를 가리면 어디에 놓는지 안 보이므로 이벤트도 받지 않는다.
+ */
+.place-preview {
+  position: fixed;
+  z-index: 40;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+  opacity: 0.85;
+  filter: drop-shadow(0 10px 12px rgba(70, 56, 40, 0.35));
+}
+
+.place-preview__art {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
 .toast {
   position: fixed;
   z-index: 30;

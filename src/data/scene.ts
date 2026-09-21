@@ -57,6 +57,30 @@ export function isWalkable(uv: Uv): boolean {
   return !OBSTACLES.some((rect) => rectContains(rect, uv))
 }
 
+/**
+ * 길찾기와 목적지 고르기에 쓰는 통행 판정.
+ *
+ * 연못·화단을 실제보다 조금 넉넉하게 잡는다. 딱 경계까지 허용하면 길이 모서리를
+ * 스치듯 지나가 물 위를 밟는 것처럼 보이고, 목적지가 경계 바로 바깥에 잡히면
+ * 격자 칸 중심이 장애물 안이라 길을 못 찾고 직선으로 가로질러 버린다.
+ */
+const PATH_CLEARANCE = 0.015
+
+export function isPathable(uv: Uv): boolean {
+  if (!rectContains(WALK_BOUNDS, uv)) return false
+  return !OBSTACLES.some((rect) =>
+    rectContains(
+      {
+        u0: rect.u0 - PATH_CLEARANCE,
+        u1: rect.u1 + PATH_CLEARANCE,
+        v0: rect.v0 - PATH_CLEARANCE,
+        v1: rect.v1 + PATH_CLEARANCE,
+      },
+      uv,
+    ),
+  )
+}
+
 /** 소품을 놓을 수 있는 자리인지 — 잔디 안이되 연못·화단은 뺀다. */
 export function isPlaceable(uv: Uv): boolean {
   if (!rectContains(PLACE_BOUNDS, uv)) return false
@@ -108,47 +132,6 @@ function nearestPlaceableByScan(origin: Uv): Uv {
   }
   // 배치 구역이 아예 없도록 좌표를 잘못 잡은 경우에만 여기로 온다.
   return best ?? clampUv(origin)
-}
-
-/**
- * 서랍에서 꺼낸 소품이 처음 놓일 자리 (스펙 8장).
- *
- * 예전에는 늘 같은 한 점에 떨어뜨려서, 두 개째부터는 앞의 소품에 정확히 겹쳐
- * 쌓이고 하단 서랍에 가려 집을 수조차 없었다. 그래서 이미 놓인 소품에서 먼
- * 자리를 고르고, 서랍에 덮이지 않는 잔디 가운데 띠를 우선한다.
- */
-const SPAWN_BAND: UvRect = { u0: 0.14, u1: 0.86, v0: 0.24, v1: 0.66 }
-const SPAWN_COLS = 9
-const SPAWN_ROWS = 5
-
-export function findSpawnSpot(taken: readonly Uv[]): Uv {
-  let best: Uv | null = null
-  let bestScore = -Infinity
-
-  for (let row = 0; row < SPAWN_ROWS; row += 1) {
-    for (let col = 0; col < SPAWN_COLS; col += 1) {
-      const candidate = {
-        u: SPAWN_BAND.u0 + ((SPAWN_BAND.u1 - SPAWN_BAND.u0) * col) / (SPAWN_COLS - 1),
-        v: SPAWN_BAND.v0 + ((SPAWN_BAND.v1 - SPAWN_BAND.v0) * row) / (SPAWN_ROWS - 1),
-      }
-      if (!isPlaceable(candidate)) continue
-
-      // 이미 놓인 소품에서 멀수록 좋고, 같은 값이면 화면 가운데에 가까운 쪽.
-      const nearest = taken.reduce(
-        (min, uv) => Math.min(min, distance(uv, candidate)),
-        Number.POSITIVE_INFINITY,
-      )
-      const spread = Math.min(nearest, 0.3)
-      const centered = -Math.hypot(candidate.u - 0.5, candidate.v - 0.45) * 0.12
-      const score = spread + centered
-      if (score > bestScore) {
-        bestScore = score
-        best = candidate
-      }
-    }
-  }
-
-  return best ?? snapToPlaceable({ u: 0.5, v: 0.45 })
 }
 
 /** 원근 격자 분할 수. 배치 구역 안내용이라 스냅 기능은 없다. */

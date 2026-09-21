@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Agent, DiaryEntry, Uv } from '../types'
-import { HOTSPOTS, WALK_BOUNDS, WALK_SPEED, isWalkable } from '../data/scene'
+import { HOTSPOTS, WALK_BOUNDS, WALK_SPEED, isPathable } from '../data/scene'
+import { findPath } from '../lib/pathfind'
 
 const ARRIVE_EPSILON = 0.012
 /** 다음 목적지를 고를 때 핫스팟(문·벤치)을 택할 확률. */
@@ -15,7 +16,7 @@ function randomSpot(): Uv {
       u: randomBetween(WALK_BOUNDS.u0, WALK_BOUNDS.u1),
       v: randomBetween(WALK_BOUNDS.v0, WALK_BOUNDS.v1),
     }
-    if (isWalkable(uv)) return uv
+    if (isPathable(uv)) return uv
   }
   // 전부 실패하면 영역 한가운데 — 좌표를 잘못 잡아도 캐릭터가 사라지진 않게.
   return {
@@ -32,9 +33,11 @@ function createAgent(entry: DiaryEntry): Agent {
     outfit: entry.outfit,
     uv: spot,
     target: spot,
+    path: [],
     activity: 'idle',
     wait: randomBetween(0.3, 2.5),
     facing: 1,
+    back: false,
     hotspot: null,
   }
 }
@@ -74,6 +77,8 @@ export function useWanderers(entries: DiaryEntry[], enabled: boolean) {
       for (const agent of agentsRef.current) {
         agent.activity = 'idle'
         agent.target = agent.uv
+        agent.path = []
+        agent.back = false
       }
       setTick((t) => t + 1)
       return
@@ -93,12 +98,17 @@ export function useWanderers(entries: DiaryEntry[], enabled: boolean) {
 
       for (const agent of agentsRef.current) {
         if (agent.activity === 'walking') {
-          const du = agent.target.u - agent.uv.u
-          const dv = agent.target.v - agent.uv.v
+          // 다음 경유지를 향해 간다. 경유지를 다 지나야 목적지에 닿은 것이다.
+          const waypoint = agent.path[0] ?? agent.target
+          const du = waypoint.u - agent.uv.u
+          const dv = waypoint.v - agent.uv.v
           const dist = Math.hypot(du, dv)
 
           if (dist < ARRIVE_EPSILON) {
-            agent.uv = agent.target
+            agent.uv = waypoint
+            agent.path.shift()
+            if (agent.path.length > 0) continue
+
             if (agent.hotspot) {
               const spot = HOTSPOTS.find((h) => h.id === agent.hotspot)
               agent.activity = spot?.kind === 'bench' ? 'sitting' : 'atGate'
@@ -107,6 +117,7 @@ export function useWanderers(entries: DiaryEntry[], enabled: boolean) {
               agent.activity = 'idle'
               agent.wait = randomBetween(1.2, 4)
             }
+            agent.back = false
           } else {
             // 뒤쪽(v가 작은 곳)일수록 원근상 느리게 보이도록 살짝 줄인다.
             const speed = WALK_SPEED * (0.75 + agent.uv.v * 0.4)
@@ -116,6 +127,8 @@ export function useWanderers(entries: DiaryEntry[], enabled: boolean) {
               v: agent.uv.v + (dv / dist) * move,
             }
             if (Math.abs(du) > 1e-4) agent.facing = du > 0 ? 1 : -1
+            // 옆으로 가는 것보다 안쪽으로 더 많이 갈 때만 뒷모습으로 돌린다.
+            agent.back = dv < 0 && Math.abs(dv) > Math.abs(du)
           }
           continue
         }
@@ -134,6 +147,8 @@ export function useWanderers(entries: DiaryEntry[], enabled: boolean) {
         } else {
           agent.target = randomSpot()
         }
+        // 연못·화단을 가로지르지 않도록 돌아가는 길을 미리 잡아 둔다.
+        agent.path = findPath(agent.uv, agent.target, isPathable)
         agent.activity = 'walking'
       }
 

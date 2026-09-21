@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type { RefObject } from 'react'
 import { useGameStore } from './hooks/useGameStore'
 import { useWanderers } from './hooks/useWanderers'
 import { useDecorDrag } from './hooks/useDecorDrag'
+import type { PlacingDecor } from './hooks/useDecorDrag'
 import { Stage } from './components/Stage'
+import { DecorSprite } from './components/DecorSprite'
 import { DiaryComposer } from './screens/DiaryComposer'
 import { Shop } from './screens/Shop'
 import { DressingRoom } from './screens/DressingRoom'
@@ -176,7 +179,7 @@ export function App() {
           available={store.availableDecor}
           placedCount={store.inventory.placedDecor.length}
           selectedName={selectedDecorName}
-          onAdd={drag.addFromDrawer}
+          onItemPointerDown={drag.onDrawerPointerDown}
           onRemoveSelected={drag.removeSelected}
           onDone={() => {
             drag.clearSelection()
@@ -184,6 +187,9 @@ export function App() {
           }}
         />
       )}
+
+      {/* 서랍에서 끌고 나온 소품이 손끝을 따라온다 */}
+      <PlacePreview placing={drag.placing} frameRef={frameRef} />
 
       {toast && (
         <p className="toast" role="status">
@@ -215,6 +221,43 @@ export function App() {
         onSetOutfit={store.setOutfit}
         onClose={() => setScreen('none')}
       />
+    </div>
+  )
+}
+
+/**
+ * 끌고 있는 소품의 미리보기.
+ *
+ * 무대가 아니라 화면 좌표에 그린다 — 서랍 위를 지날 때도 손끝에 붙어 있어야
+ * 하는데, 무대 안에 두면 카메라 변환을 같이 받아 손끝에서 떨어진다.
+ * 높이는 무대 프레임 대비 %라, 실제로 놓였을 때와 같은 크기로 보인다.
+ */
+function PlacePreview({
+  placing,
+  frameRef,
+}: {
+  placing: PlacingDecor | null
+  frameRef: RefObject<HTMLDivElement | null>
+}) {
+  if (!placing) return null
+  const item = decorById(placing.itemId)
+  if (!item) return null
+
+  const frameHeight = frameRef.current?.getBoundingClientRect().height ?? 0
+  const height = (frameHeight * item.height * placing.scale) / 100
+
+  return (
+    <div
+      className="place-preview"
+      style={{
+        left: placing.clientX,
+        top: placing.clientY,
+        height: height || undefined,
+        aspectRatio: `${item.width} / ${item.height}`,
+      }}
+      aria-hidden="true"
+    >
+      <DecorSprite art={item.art} className="place-preview__art" />
     </div>
   )
 }

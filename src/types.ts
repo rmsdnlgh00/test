@@ -127,13 +127,20 @@ export interface Agent {
   outfit: OutfitSet
   /** 현재 위치 */
   uv: Uv
-  /** 이동 목표 */
+  /** 최종 목적지 */
   target: Uv
+  /**
+   * 목적지까지 남은 경유지. 연못처럼 못 가는 곳을 돌아가느라 꺾이는 지점들이다.
+   * 마지막 칸이 곧 target 이고, 직선으로 갈 수 있으면 칸이 하나뿐이다.
+   */
+  path: Uv[]
   activity: AgentActivity
   /** 남은 대기 시간(초). 0이 되면 다음 목표를 고른다. */
   wait: number
   /** 바라보는 방향. 1이면 오른쪽 */
   facing: 1 | -1
+  /** 화면 안쪽(멀어지는 방향)으로 걷는 중이면 true — 뒷모습을 그린다. */
+  back: boolean
   /** 점유 중인 핫스팟 id */
   hotspot: string | null
 }

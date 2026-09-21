@@ -209,6 +209,21 @@ function DecorPiece({
   )
 }
 
+/**
+ * 캐릭터마다 다른 걸음 박자.
+ *
+ * 날짜 문자열에서 뽑으므로 새로고침해도 같은 캐릭터는 같은 박자로 걷는다.
+ * 이게 없으면 전부 기본값 0.62초로 발을 맞춰 걸어서 행군처럼 보인다.
+ */
+function gaitOf(date: string): CSSProperties {
+  let hash = 0
+  for (let i = 0; i < date.length; i += 1) hash = (hash * 31 + date.charCodeAt(i)) % 100000
+  const step = 0.52 + (hash % 26) / 100
+  // 음수 지연이라 처음부터 저마다 다른 지점에서 시작한다.
+  const phase = -((hash % 17) / 20)
+  return { '--step': `${step.toFixed(2)}s`, '--phase': `${phase.toFixed(2)}s` } as CSSProperties
+}
+
 function AgentPiece({ agent }: { agent: Agent }) {
   const p = uvToPoint(GROUND_QUAD, agent.uv)
   const scale = depthScale(agent.uv.v, SCALE_BACK, SCALE_FRONT)
@@ -222,6 +237,7 @@ function AgentPiece({ agent }: { agent: Agent }) {
         height: `${CHARACTER_HEIGHT * scale}%`,
         aspectRatio: '1',
         transform: `translate(-50%, -${100 - CHARACTER_FOOT_INSET}%)`,
+        ...gaitOf(agent.date),
       }}
     >
       <Character
@@ -230,6 +246,7 @@ function AgentPiece({ agent }: { agent: Agent }) {
         bottom={outfitInSlot(agent.outfit.bottom, 'bottom')}
         activity={agent.activity}
         facing={agent.facing}
+        back={agent.back}
         className="stage__art"
       />
     </div>

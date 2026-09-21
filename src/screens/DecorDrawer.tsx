@@ -8,20 +8,20 @@ interface DecorDrawerProps {
   available: string[]
   placedCount: number
   selectedName: string | null
-  onAdd: (itemId: string) => void
+  onItemPointerDown: (itemId: string, event: ReactPointerEvent<HTMLElement>) => void
   onRemoveSelected: () => void
   onDone: () => void
 }
 
 /**
  * 꾸미기 모드 하단 서랍 (스펙 8장).
- * 서랍의 소품을 탭하면 마당의 빈자리에 놓이고, 그다음 드래그로 자리를 잡는다.
+ * 서랍의 소품을 꾹 눌러 마당으로 끌어다 놓으면 그 자리에 앉는다.
  */
 export function DecorDrawer({
   available,
   placedCount,
   selectedName,
-  onAdd,
+  onItemPointerDown,
   onRemoveSelected,
   onDone,
 }: DecorDrawerProps) {
@@ -35,7 +35,7 @@ export function DecorDrawer({
         <span className="drawer__hint">
           {selectedName
             ? `${selectedName} — 끌어서 옮기세요`
-            : '소품을 탭하면 마당 가운데 놓여요. 끌어서 자리를 잡으세요'}
+            : '소품을 꾹 눌러 마당으로 끌어다 놓으세요'}
         </span>
         <div className="drawer__actions">
           {selectedName && (
@@ -54,7 +54,13 @@ export function DecorDrawer({
           const item = decorById(id)
           if (!item) return null
           return (
-            <button key={id} className="drawer__item" type="button" onClick={() => onAdd(id)}>
+            <button
+              key={id}
+              className="drawer__item"
+              type="button"
+              onPointerDown={(event) => onItemPointerDown(id, event)}
+              aria-label={`${item.name} 끌어다 놓기`}
+            >
               <DecorSprite art={item.art} className="drawer__sprite" />
               <span>{item.name}</span>
             </button>

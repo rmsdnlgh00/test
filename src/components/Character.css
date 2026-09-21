@@ -1,52 +1,76 @@
 /* 걷기 프레임: 다리·팔이 서로 반대 위상으로 움직이고 몸이 살짝 위아래로 튄다.
-   --step은 한 걸음 주기. CharacterStage가 캐릭터마다 다른 값을 넣어준다. */
-.char--walking .char__leg--l,
-.char--walking .char__foot--l {
+   --step은 한 걸음 주기, --phase는 시작 위상. 둘 다 Stage가 캐릭터마다 다른
+   값을 넣어 준다 — 같은 값이면 30명이 한 몸처럼 발을 맞춰 걸어 행군이 된다. */
+.char--walking .char__leg--l {
   animation: char-step-a var(--step, 0.62s) ease-in-out infinite;
+  animation-delay: var(--phase, 0s);
+  /* 고관절을 축으로 돈다. 예전처럼 좌우로 평행이동하면 걷는 게 아니라 미끄러진다. */
+  transform-origin: 45px 65px;
 }
 
-.char--walking .char__leg--r,
-.char--walking .char__foot--r {
+.char--walking .char__leg--r {
   animation: char-step-b var(--step, 0.62s) ease-in-out infinite;
+  animation-delay: var(--phase, 0s);
+  transform-origin: 55px 65px;
 }
 
 .char--walking .char__arm--l {
   animation: char-swing-a var(--step, 0.62s) ease-in-out infinite;
+  animation-delay: var(--phase, 0s);
   transform-origin: 38px 45px;
 }
 
 .char--walking .char__arm--r {
   animation: char-swing-b var(--step, 0.62s) ease-in-out infinite;
+  animation-delay: var(--phase, 0s);
   transform-origin: 62px 45px;
 }
 
 .char--walking .char__body-group {
   animation: char-hop calc(var(--step, 0.62s) / 2) ease-in-out infinite;
+  animation-delay: var(--phase, 0s);
 }
 
 .char--walking .char__shadow {
   animation: char-shadow calc(var(--step, 0.62s) / 2) ease-in-out infinite;
+  animation-delay: var(--phase, 0s);
   transform-origin: 50px 94px;
 }
 
-/* 다리는 앞뒤로 흔들리듯 x축으로 오가며, 들릴 때 y로 올라간다. */
+/* 서 있는 동안의 숨결. 걸을 때와 겹치지 않도록 따로 건다. */
+.char--breathing .char__body-group {
+  animation: char-breathe calc(var(--step, 0.62s) * 5) ease-in-out infinite;
+  animation-delay: var(--phase, 0s);
+}
+
+/* 다리는 고관절을 축으로 앞뒤로 흔들리고, 뒤로 간 쪽이 살짝 들린다. */
 @keyframes char-step-a {
   0%,
   100% {
-    transform: translate(3px, 0);
+    transform: rotate(17deg);
   }
   50% {
-    transform: translate(-3px, -3px);
+    transform: rotate(-15deg) translateY(-1.5px);
   }
 }
 
 @keyframes char-step-b {
   0%,
   100% {
-    transform: translate(-3px, -3px);
+    transform: rotate(-15deg) translateY(-1.5px);
   }
   50% {
-    transform: translate(3px, 0);
+    transform: rotate(17deg);
+  }
+}
+
+@keyframes char-breathe {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1.1px);
   }
 }
 
