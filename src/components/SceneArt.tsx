@@ -54,6 +54,52 @@ const lawnBand = (v0: number, v1: number) =>
   ])
 
 /**
+ * 잔디판의 부드러운 실루엣.
+ *
+ * 좌표계(GROUND_QUAD)는 사다리꼴 그대로 두고 그림만 모서리를 둥글리고 변을
+ * 살짝 배부르게 휜다. 자로 그은 사다리꼴은 색을 아무리 잘 칠해도 종이를 오려
+ * 붙인 것처럼 납작하게 읽힌다.
+ *
+ * 부풀리기는 바깥으로만 한다 — 안쪽으로 깎으면 걸어다닐 수 있는 자리(uv 0~1)가
+ * 그림 밖으로 비어져 나와 캐릭터가 허공을 딛는다.
+ */
+function softLawnPath(inflate: number, bow: number) {
+  const corners = [
+    at({ u: 0, v: 0 }),
+    at({ u: 1, v: 0 }),
+    at({ u: 1, v: 1 }),
+    at({ u: 0, v: 1 }),
+  ]
+  const cx = corners.reduce((sum, p) => sum + p.x, 0) / 4
+  const cy = corners.reduce((sum, p) => sum + p.y, 0) / 4
+
+  const pushOut = (px: number, py: number, by: number) => {
+    const dx = px - cx
+    const dy = py - cy
+    const len = Math.hypot(dx, dy) || 1
+    return { x: px + (dx / len) * by, y: py + (dy / len) * by }
+  }
+
+  const out = corners.map((p) => pushOut(p.x, p.y, inflate))
+  // 변의 중점을 바깥으로 민 자리를 제어점으로 써서 변마다 완만한 배를 만든다.
+  const control = out.map((p, i) => {
+    const q = out[(i + 1) % 4]
+    return pushOut((p.x + q.x) / 2, (p.y + q.y) / 2, bow)
+  })
+
+  return (
+    `M${out[0].x.toFixed(1)} ${out[0].y.toFixed(1)} ` +
+    control
+      .map((c, i) => {
+        const next = out[(i + 1) % 4]
+        return `Q${c.x.toFixed(1)} ${c.y.toFixed(1)} ${next.x.toFixed(1)} ${next.y.toFixed(1)}`
+      })
+      .join(' ') +
+    ' Z'
+  )
+}
+
+/**
  * 잔디판 바깥의 공원 땅.
  *
  * 울타리 밑동(y≈345)보다 조금 위에서 시작해 화면 아래 끝까지, 좌우로도 화면
@@ -100,15 +146,17 @@ interface TreeSpec {
   roll: number
 }
 
+/** 잔디 실루엣을 바깥으로 부풀리는 정도와 변이 휘는 정도. */
+const SOFT_INFLATE = 30
+const SOFT_BOW = 20
+
 export function SceneArt({ palette }: { palette: ScenePalette }) {
   const backdrop = useMemo(buildBackdrop, [])
   const scatter = useMemo(buildScatter, [])
 
-  const frontLeft = at({ u: 0, v: 1 })
-  const frontRight = at({ u: 1, v: 1 })
   const backLeft = at({ u: 0, v: 0 })
-  const midX = (frontLeft.x + frontRight.x) / 2
   const plinth = 44
+  const softLawn = softLawnPath(SOFT_INFLATE, SOFT_BOW)
 
   const pond = ovalOf(POND)
   const bed = ovalOf(FLOWER_BED)
@@ -161,6 +209,28 @@ export function SceneArt({ palette }: { palette: ScenePalette }) {
           <stop offset="0%" stopColor={palette.grassLight} stopOpacity="0.45" />
           <stop offset="100%" stopColor={palette.grassLight} stopOpacity="0" />
         </linearGradient>
+        {/*
+         * 접지 그림자를 흐리는 필터.
+         *
+         * 딱딱한 타원 그림자는 물체를 바닥에 붙여 주지 못하고 스티커처럼
+         * 얹어 놓는다. 가장자리를 풀어 놓아야 그 자리에 폭 내려앉아 보인다.
+         * 큰 것(잔디판)과 작은 것(벤치·돌)의 흐림 정도가 달라야 한다.
+         */}
+        <filter id="art-blur-lg" x="-25%" y="-60%" width="150%" height="260%">
+          <feGaussianBlur stdDeviation="18" />
+        </filter>
+        <filter id="art-blur-sm" x="-80%" y="-200%" width="260%" height="600%">
+          <feGaussianBlur stdDeviation="6" />
+        </filter>
+        {/* 잔디판 가운데로 모이는 볕 — 평면에 완만한 부피를 준다 */}
+        <radialGradient id="art-lawn-dome" cx="0.5" cy="0.42" r="0.62">
+          <stop offset="0%" stopColor={SUNLIT} stopOpacity="0.34" />
+          <stop offset="60%" stopColor={SUNLIT} stopOpacity="0.08" />
+          <stop offset="100%" stopColor={SHADE} stopOpacity="0.14" />
+        </radialGradient>
+        <clipPath id="art-lawn-clip">
+          <path d={softLawn} />
+        </clipPath>
       </defs>
 
       <rect width={SVG_WIDTH} height={SVG_HEIGHT} fill="url(#art-sky)" />
@@ -280,63 +350,63 @@ export function SceneArt({ palette }: { palette: ScenePalette }) {
             />
           ))}
 
-      {/* 디오라마 받침 — 잔디 평면의 두께 */}
+      {/* 잔디판이 들판에 드리우는 그림자 — 단이 떠 보이지 않게 바닥에 붙인다 */}
       <path
-        d={
-          `M${frontLeft.x} ${frontLeft.y} L${frontRight.x} ${frontRight.y} ` +
-          `L${frontRight.x} ${frontRight.y + plinth} ` +
-          `Q${midX} ${frontRight.y + plinth + 18} ${frontLeft.x} ${frontLeft.y + plinth} Z`
-        }
-        fill={palette.soil}
-      />
-      <path
-        d={
-          `M${frontLeft.x} ${frontLeft.y + plinth * 0.5} L${frontRight.x} ${frontRight.y + plinth * 0.5} ` +
-          `L${frontRight.x} ${frontRight.y + plinth} ` +
-          `Q${midX} ${frontRight.y + plinth + 18} ${frontLeft.x} ${frontLeft.y + plinth} Z`
-        }
-        fill={palette.soilDark}
-        opacity="0.5"
+        d={softLawn}
+        fill={SHADE}
+        opacity="0.2"
+        transform={`translate(6 ${plinth + 12})`}
+        filter="url(#art-blur-lg)"
       />
 
-      {/* 잔디판이 들판에 드리우는 그림자 — 단이 떠 보이지 않게 바닥에 붙인다 */}
-      <path d={lawnBand(0, 1)} fill={SHADE} opacity="0.16" transform="translate(6 8)" />
+      {/*
+       * 디오라마 받침 — 잔디 실루엣을 그대로 아래로 내려 두께를 만든다.
+       * 예전처럼 앞모서리에만 사각 띠를 대면 잔디는 둥근데 받침만 각져서
+       * 단이 따로 논다. 같은 실루엣을 겹쳐 내리면 어떤 모양이든 따라온다.
+       */}
+      <path d={softLawn} fill={palette.soilDark} transform={`translate(0 ${plinth * 1.35})`} />
+      <path d={softLawn} fill={palette.soil} transform={`translate(0 ${plinth})`} />
 
       {/* 잔디 평면 */}
-      <path d={lawnBand(0, 1)} fill="url(#art-grass)" />
+      <path d={softLawn} fill="url(#art-grass)" />
+      {/* 가운데가 살짝 부푼 듯한 볕 — 자로 그은 평면처럼 보이지 않게 */}
+      <path d={softLawn} fill="url(#art-lawn-dome)" />
 
-      {/* 잔디 결. 원근을 따르는 가로 띠라 평면이 눕혀 보인다 */}
-      {scatter.mowBands.map((band, i) => (
-        <path
-          key={`mow-${i}`}
-          d={lawnBand(band.v0, band.v1)}
-          fill={palette.grassLight}
-          opacity="0.09"
-        />
-      ))}
+      {/* 결·그늘·볕은 둥근 실루엣 안에서만 — 밖으로 새면 각진 모서리가 되살아난다 */}
+      <g clipPath="url(#art-lawn-clip)">
+        {/* 잔디 결. 원근을 따르는 가로 띠라 평면이 눕혀 보인다 */}
+        {scatter.mowBands.map((band, i) => (
+          <path
+            key={`mow-${i}`}
+            d={lawnBand(band.v0, band.v1)}
+            fill={palette.grassLight}
+            opacity="0.09"
+          />
+        ))}
 
-      <path d={lawnBand(0, 0.26)} fill="url(#art-lawn-shade)" />
-      <path d={lawnBand(0.62, 1)} fill="url(#art-lawn-light)" />
+        <path d={lawnBand(0, 0.26)} fill="url(#art-lawn-shade)" />
+        <path d={lawnBand(0.62, 1)} fill="url(#art-lawn-light)" />
+      </g>
 
-      {/* 잔디 앞 모서리에 걸리는 빛 */}
-      <line
-        x1={frontLeft.x}
-        y1={frontLeft.y - 2}
-        x2={frontRight.x}
-        y2={frontRight.y - 2}
+      {/* 잔디 앞 모서리에 걸리는 빛 — 둥근 앞변을 따라 흐른다 */}
+      <path
+        d={softLawnPath(SOFT_INFLATE - 3, SOFT_BOW)}
+        fill="none"
         stroke={palette.grassLight}
-        strokeWidth="4"
-        opacity="0.5"
+        strokeWidth="5"
+        opacity="0.4"
+        filter="url(#art-blur-sm)"
       />
 
       {/* 연못 — POND 좌표에 그대로 앉는다 */}
       <ellipse
         cx={pond.cx}
         cy={pond.cy}
-        rx={pond.rx * 1.06}
-        ry={pond.ry * 1.08}
+        rx={pond.rx * 1.08}
+        ry={pond.ry * 1.12}
         fill={palette.soilDark}
-        opacity="0.32"
+        opacity="0.34"
+        filter="url(#art-blur-sm)"
       />
       <ellipse cx={pond.cx} cy={pond.cy} rx={pond.rx} ry={pond.ry} fill="url(#art-water)" />
       {/* 물결 한두 줄이면 수면이 물처럼 읽힌다 */}
@@ -374,7 +444,15 @@ export function SceneArt({ palette }: { palette: ScenePalette }) {
       ))}
 
       {/* 화단 — FLOWER_BED 좌표에 그대로 앉는다 */}
-      <ellipse cx={bed.cx} cy={bed.cy} rx={bed.rx} ry={bed.ry} fill={palette.soil} opacity="0.45" />
+      <ellipse
+        cx={bed.cx}
+        cy={bed.cy}
+        rx={bed.rx}
+        ry={bed.ry}
+        fill={palette.soil}
+        opacity="0.45"
+        filter="url(#art-blur-sm)"
+      />
       <ellipse
         cx={bed.cx}
         cy={bed.cy}
@@ -426,10 +504,11 @@ export function SceneArt({ palette }: { palette: ScenePalette }) {
             <ellipse
               cx={p.x}
               cy={p.y + 4 * scale}
-              rx={33 * scale}
-              ry={13 * scale}
+              rx={34 * scale}
+              ry={14 * scale}
               fill={SHADE}
-              opacity="0.12"
+              opacity="0.14"
+              filter="url(#art-blur-sm)"
             />
             <ellipse
               cx={p.x}
@@ -500,6 +579,21 @@ export function SceneArt({ palette }: { palette: ScenePalette }) {
       {backdrop.frontTrees.map((tree, i) => (
         <Tree key={`front-${i}`} id={`f${i}`} spec={tree} palette={palette} />
       ))}
+
+      {/* 공중의 빛가루 — 번진 무리 위에 또렷한 심지를 얹어야 '반짝'으로 읽힌다 */}
+      {scatter.motes.map((mote, i) => (
+        <g key={`mote-${i}`} opacity={mote.opacity}>
+          <circle
+            cx={mote.x}
+            cy={mote.y}
+            r={mote.r * 2.1}
+            fill={SUNLIT}
+            opacity="0.5"
+            filter="url(#art-blur-sm)"
+          />
+          <circle cx={mote.x} cy={mote.y} r={mote.r * 0.5} fill="#fffdf2" />
+        </g>
+      ))}
     </svg>
   )
 }
@@ -528,6 +622,7 @@ function Tree({ id, spec, palette }: { id: string; spec: TreeSpec; palette: Scen
   // 물드는 중인 잎 얼룩. 초록 나무엔 단풍색을, 단풍 나무엔 남은 초록을 찍는다.
   const speck = warm ? palette.canopy[2] : palette.accent
   const clipId = `canopy-${id}`
+  const softId = `soft-${id}`
   const trunkWidth = size * 0.13
 
   return (
@@ -538,9 +633,29 @@ function Tree({ id, spec, palette }: { id: string; spec: TreeSpec; palette: Scen
             <circle key={i} cx={x + size * blob.dx} cy={y + size * blob.dy} r={size * blob.r} />
           ))}
         </clipPath>
+        {/*
+         * 수관 안의 그늘·볕을 흐리는 필터.
+         *
+         * 이게 없으면 그늘 타원의 경계가 그대로 드러나 잎덩이가 색종이를 오려
+         * 붙인 것처럼 납작해 보인다. 흐린 음영이 덩어리 안에서 위아래로 옮겨
+         * 가야 점토처럼 둥근 부피가 생긴다. 흐림 정도를 나무 크기에 비례시켜야
+         * 작은 나무가 통째로 뭉개지지 않는다.
+         */}
+        <filter id={softId} x="-70%" y="-70%" width="240%" height="240%">
+          <feGaussianBlur stdDeviation={size * 0.15} />
+        </filter>
       </defs>
 
-      <ellipse cx={x} cy={y} rx={size * 0.42} ry={size * 0.1} fill={SHADE} opacity="0.16" />
+      {/* 바닥에 닿는 그림자 — 가장자리를 흐려야 나무가 바닥에 폭 앉은 것으로 읽힌다 */}
+      <ellipse
+        cx={x}
+        cy={y}
+        rx={size * 0.46}
+        ry={size * 0.12}
+        fill={SHADE}
+        opacity="0.2"
+        filter={`url(#${softId})`}
+      />
 
       {/* 밑동이 살짝 굵은 줄기와 가지 하나 */}
       <path
@@ -572,28 +687,35 @@ function Tree({ id, spec, palette }: { id: string; spec: TreeSpec; palette: Scen
           height={size * 1.6}
           fill={base}
         />
-        {/* 아래쪽 그늘 */}
-        <ellipse
-          cx={x - size * 0.1}
-          cy={y - size * 0.4}
-          rx={size}
-          ry={size * 0.46}
-          fill={SHADE}
-          opacity="0.2"
-        />
-        {/* 위쪽 볕 */}
-        <ellipse
-          cx={x + size * 0.16}
-          cy={y - size * 1.05}
-          rx={size * 0.5}
-          ry={size * 0.32}
-          fill={SUNLIT}
-          opacity="0.3"
-        />
-        {/* 물드는 잎 얼룩 */}
-        <circle cx={x - size * 0.34} cy={y - size * 0.72} r={size * 0.15} fill={speck} opacity="0.5" />
-        <circle cx={x + size * 0.28} cy={y - size * 0.95} r={size * 0.12} fill={speck} opacity="0.42" />
-        <circle cx={x + size * 0.08} cy={y - size * 0.56} r={size * 0.1} fill={speck} opacity="0.38" />
+        {/*
+         * 그늘·볕·얼룩을 한꺼번에 흐린다. 낱낱이 선명할 때는 원이 겹친 자리마다
+         * 테두리가 생겨 뭉게구름처럼 보였는데, 흐려 놓으면 빛이 위에서 한 방향으로
+         * 들어와 덩어리를 감싸는 것으로 읽힌다.
+         */}
+        <g filter={`url(#${softId})`}>
+          {/* 아래쪽 그늘 — 덩어리 배를 깊게 눌러 준다 */}
+          <ellipse
+            cx={x - size * 0.08}
+            cy={y - size * 0.34}
+            rx={size * 1.05}
+            ry={size * 0.5}
+            fill={SHADE}
+            opacity="0.3"
+          />
+          {/* 위쪽 볕 */}
+          <ellipse
+            cx={x + size * 0.16}
+            cy={y - size * 1.04}
+            rx={size * 0.54}
+            ry={size * 0.36}
+            fill={SUNLIT}
+            opacity="0.42"
+          />
+          {/* 물드는 잎 얼룩 */}
+          <circle cx={x - size * 0.34} cy={y - size * 0.72} r={size * 0.19} fill={speck} opacity="0.5" />
+          <circle cx={x + size * 0.28} cy={y - size * 0.95} r={size * 0.15} fill={speck} opacity="0.42" />
+          <circle cx={x + size * 0.08} cy={y - size * 0.56} r={size * 0.13} fill={speck} opacity="0.38" />
+        </g>
       </g>
     </g>
   )
@@ -751,7 +873,15 @@ function Bench({ palette }: { palette: ScenePalette }) {
 
   return (
     <g>
-      <ellipse cx={p.x} cy={p.y} rx={halfFront + 4} ry={9} fill={SHADE} opacity="0.2" />
+      <ellipse
+        cx={p.x}
+        cy={p.y}
+        rx={halfFront + 6}
+        ry={10}
+        fill={SHADE}
+        opacity="0.22"
+        filter="url(#art-blur-sm)"
+      />
 
       {/* 뒷다리와 등받이 기둥 — 앉는 판보다 먼저 그려 뒤로 보낸다 */}
       {leg(p.x - halfBack + 6, seatY - 4, p.y - 5, 6)}
@@ -913,6 +1043,20 @@ function buildScatter() {
   const mowBands = Array.from({ length: 5 }, (_, i) => ({ v0: i * 0.2, v1: i * 0.2 + 0.1 }))
 
   /*
+   * 공중에 떠도는 빛가루.
+   *
+   * 도형을 늘리지 않고도 공기가 있는 것처럼 보이게 하는 가장 싼 방법이다.
+   * 잔디 위부터 나무 우듬지 높이까지만 뿌려, 하늘 한복판에 먼지가 뜬 것처럼
+   * 보이지 않게 한다.
+   */
+  const motes = Array.from({ length: 30 }, () => ({
+    x: random() * SVG_WIDTH,
+    y: SVG_HEIGHT * 0.26 + random() * SVG_HEIGHT * 0.52,
+    r: 2.5 + random() * 4.5,
+    opacity: 0.35 + random() * 0.45,
+  }))
+
+  /*
    * 들판의 풀포기. 잔디판 가장자리에서 바깥으로 밀어 내 심는다 —
    * 예전에 아무것도 없어 비어 보이던 바로 그 자리다.
    */
@@ -930,5 +1074,5 @@ function buildScatter() {
     }
   }).filter((spot) => spot.x > -20 && spot.x < SVG_WIDTH + 20 && spot.y > 500)
 
-  return { blooms, stones, pondStones, tufts, leaves, mowBands, meadow }
+  return { blooms, stones, pondStones, tufts, leaves, mowBands, meadow, motes }
 }

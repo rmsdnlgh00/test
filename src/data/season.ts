@@ -132,18 +132,18 @@ const LATE_AUTUMN: ScenePalette = {
  */
 const EARLY_AUTUMN: ScenePalette = {
   ...AUTUMN,
-  skyTop: '#a7d4ec',
-  skyBottom: '#fdf1d8',
-  hillFar: '#d9d5a2',
-  hillNear: '#b6bb78',
-  grassTop: '#b4c873',
-  grassBottom: '#93aa5b',
-  grassLight: '#d0dc92',
+  skyTop: '#b5dcef',
+  skyBottom: '#fdf3e2',
+  hillFar: '#e3ddbe',
+  hillNear: '#c6c79b',
+  grassTop: '#c6d295',
+  grassBottom: '#a8b878',
+  grassLight: '#dfe6b6',
   // 마지막 한 톤만 아직 초록이다 — 나무마다 물드는 속도가 다른 것처럼 보인다.
-  canopy: ['#d08a3c', '#e2a851', '#a8bb5e'],
-  accent: '#e0693f',
+  canopy: ['#daa06b', '#ebbc87', '#bfcc93'],
+  accent: '#dd8a63',
   accentRatio: 0.5,
-  bloom: ['#f5b06a', '#ffe6b4', '#dca9b4'],
+  bloom: ['#f7c496', '#fff0cd', '#e3bcc2'],
 }
 
 const WINTER: ScenePalette = {
